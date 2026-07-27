@@ -3,8 +3,25 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-r
 import { jsPDF } from 'jspdf'
 import './App.css'
 
-const API_URL =
-  import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api' : 'http://localhost:4000/api')
+function resolveApiUrl() {
+  const configuredUrl = import.meta.env.VITE_API_URL
+
+  if (!import.meta.env.PROD) {
+    return configuredUrl || 'http://localhost:4000/api'
+  }
+
+  if (configuredUrl && configuredUrl.startsWith('/')) {
+    return configuredUrl
+  }
+
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return `${window.location.origin}/api`
+  }
+
+  return '/api'
+}
+
+const API_URL = resolveApiUrl()
 const BRAND_LOGO_URL = '/imagenes/logo.png'
 const ADMIN_WHATSAPP_PHONE = '593988062935'
 
