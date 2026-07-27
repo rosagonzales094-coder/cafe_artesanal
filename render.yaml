@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: cafe-artesanal
+    env: node
+    plan: free
+    buildCommand: npm ci && npm run build:render
+    startCommand: npm run start
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: CLIENT_ORIGIN
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: DB_URL
+        sync: false
+      - key: DB_SSL
+        value: "true"
+      - key: DB_SSL_MODE
+        value: require
+      - key: DB_CONNECTION_LIMIT
+        value: "10"
+      - key: DB_CONNECT_TIMEOUT_MS
+        value: "10000"
+      - key: DB_KEEP_ALIVE
+        value: "true"
+      - key: VITE_API_URL
+        value: /api

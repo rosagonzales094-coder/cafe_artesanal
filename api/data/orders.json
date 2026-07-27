@@ -1,0 +1,210 @@
+[
+  {
+    "id_venta": 8,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 33,
+    "iva": 4.95,
+    "total": 37.95,
+    "estado": "PAGADA",
+    "referencia_deposito": "TRANFERENCIA",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 7,
+        "cantidad": 2,
+        "precio_unitario": 16.5
+      }
+    ],
+    "fecha": "2026-07-26T20:58:46.886Z"
+  },
+  {
+    "id_venta": 1,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 18,
+    "iva": 2.7,
+    "total": 20.7,
+    "estado": "PAGADA",
+    "referencia_deposito": "Transferencia",
+    "forma_entrega": "ENTREGA_DOMICILIO",
+    "direccion_entrega": "Nela",
+    "items": [
+      {
+        "id_producto": 3,
+        "cantidad": 1,
+        "precio_unitario": 18
+      }
+    ],
+    "fecha": "2026-07-23T03:47:55.052Z"
+  },
+  {
+    "id_venta": 4,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 520,
+    "iva": 78,
+    "total": 598,
+    "estado": "ANULADA",
+    "referencia_deposito": "fghjkl",
+    "forma_entrega": "ENTREGA_DOMICILIO",
+    "direccion_entrega": "ghjkl",
+    "items": [
+      {
+        "id_producto": 8,
+        "cantidad": 26,
+        "precio_unitario": 20
+      }
+    ],
+    "fecha": "2026-07-25T13:28:43.889Z"
+  },
+  {
+    "id_venta": 5,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 462,
+    "iva": 69.3,
+    "total": 531.3,
+    "estado": "ANULADA",
+    "referencia_deposito": "TRANSFERENCIA",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 7,
+        "cantidad": 28,
+        "precio_unitario": 16.5
+      }
+    ],
+    "fecha": "2026-07-26T20:36:14.244Z"
+  },
+  {
+    "id_venta": 6,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 504,
+    "iva": 75.6,
+    "total": 579.6,
+    "estado": "ANULADA",
+    "referencia_deposito": "TRANSFERENCIA",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 3,
+        "cantidad": 28,
+        "precio_unitario": 18
+      }
+    ],
+    "fecha": "2026-07-26T20:44:37.560Z"
+  },
+  {
+    "id_venta": 7,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 108,
+    "iva": 16.2,
+    "total": 124.2,
+    "estado": "PAGADA",
+    "referencia_deposito": "TRANSFERENCIA",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 3,
+        "cantidad": 6,
+        "precio_unitario": 18
+      }
+    ],
+    "fecha": "2026-07-26T20:55:35.708Z"
+  },
+  {
+    "id_venta": 9,
+    "id_cliente": 8,
+    "id_usuario": 5,
+    "subtotal": 5.3,
+    "iva": 0.79,
+    "total": 6.09,
+    "estado": "PAGADA",
+    "referencia_deposito": "tramsferencia",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 4,
+        "cantidad": 1,
+        "precio_unitario": 2.5
+      },
+      {
+        "id_producto": 5,
+        "cantidad": 1,
+        "precio_unitario": 2.8
+      }
+    ],
+    "fecha": "2026-07-26T21:07:58.205Z"
+  },
+  {
+    "id_venta": 10,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 18,
+    "iva": 2.7,
+    "total": 20.7,
+    "estado": "PAGADA",
+    "metodo_pago": "TRANSFERENCIA_BANCARIA",
+    "referencia_deposito": "TRANSFERENCIA_BANCARIA-1785126158349",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 3,
+        "cantidad": 1,
+        "precio_unitario": 18
+      }
+    ],
+    "fecha": "2026-07-27T04:22:39.836Z"
+  },
+  {
+    "id_venta": 11,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 16.5,
+    "iva": 2.48,
+    "total": 18.98,
+    "estado": "PAGADA",
+    "metodo_pago": "DEPOSITO_BANCARIO",
+    "referencia_deposito": "DEPOSITO_BANCARIO-1785126395892",
+    "forma_entrega": "ENTREGA_DOMICILIO",
+    "direccion_entrega": "loja",
+    "items": [
+      {
+        "id_producto": 7,
+        "cantidad": 1,
+        "precio_unitario": 16.5
+      }
+    ],
+    "fecha": "2026-07-27T04:26:36.651Z"
+  },
+  {
+    "id_venta": 12,
+    "id_cliente": 6,
+    "id_usuario": 3,
+    "subtotal": 18,
+    "iva": 2.7,
+    "total": 20.7,
+    "estado": "PAGADA",
+    "metodo_pago": "DEPOSITO_BANCARIO",
+    "referencia_deposito": "DEPOSITO_BANCARIO-1785126961416",
+    "forma_entrega": "RETIRO_TIENDA",
+    "direccion_entrega": "",
+    "items": [
+      {
+        "id_producto": 3,
+        "cantidad": 1,
+        "precio_unitario": 18
+      }
+    ],
+    "fecha": "2026-07-27T04:36:02.154Z"
+  }
+]
