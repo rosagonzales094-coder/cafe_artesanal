@@ -2856,7 +2856,13 @@ function App() {
         throw new Error(data.message || 'No se pudieron cargar las reseñas')
       }
 
-      setAppReviews(Array.isArray(data.reviews) ? data.reviews : [])
+      const platformReviews = Array.isArray(data.reviews)
+        ? data.reviews.filter(
+            (review) => normalizeReviewScope(review.scope) === REVIEW_SCOPE_APP,
+          )
+        : []
+
+      setAppReviews(platformReviews)
     } catch {
       setAppReviews([])
     }
