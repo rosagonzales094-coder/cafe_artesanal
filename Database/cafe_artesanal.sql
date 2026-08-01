@@ -75,9 +75,8 @@ CREATE TABLE proveedores(
     estado ENUM('ACTIVO','INACTIVO') DEFAULT 'ACTIVO'
 )ENGINE=InnoDB;
 
-/*=========================================================
-TABLA SUCURSALES
-=========================================================*/
+/*
+TABLA SUCURSALES*/
 
 CREATE TABLE sucursales(
     id_sucursal INT AUTO_INCREMENT PRIMARY KEY,
@@ -86,14 +85,10 @@ CREATE TABLE sucursales(
     telefono VARCHAR(20),
     estado ENUM('ACTIVA','INACTIVA') DEFAULT 'ACTIVA'
 )ENGINE=InnoDB;
-/*=========================================================
-        PARTE 2
-        TABLAS RELACIONADAS
-=========================================================*/
+/*TABLAS RELACIONADAS*/
 
-/*=========================================================
-TABLA USUARIOS
-=========================================================*/
+/*
+TABLA USUARIOS*/
 
 CREATE TABLE usuarios(
     id_usuario INT AUTO_INCREMENT PRIMARY KEY,
@@ -1398,11 +1393,11 @@ VALUES
 
 INSERT INTO productos(id_categoria, id_proveedor, codigo, nombre, descripcion, precio_compra, precio_venta, stock, stock_minimo)
 VALUES
-(1,1,'CAF001','Café Molido Premium','500 gramos',5.00,8.00,100,20),
-(1,1,'CAF002','Café Orgánico','250 gramos',4.50,7.50,80,20),
-(2,1,'CAF003','Café en Grano','1 kilogramo',12.00,18.00,40,10),
-(3,1,'BEB001','Capuccino','Bebida caliente',1.20,2.50,150,30),
-(3,1,'BEB002','Latte','Bebida caliente',1.30,2.80,150,30);
+(1,1,'CAF001','Café Molido Premium','500 gramos de café molido artesanal con perfil equilibrado, aroma suave y buena presencia en taza para consumo diario.',5.00,8.00,100,20),
+(1,1,'CAF002','Café Orgánico','250 gramos de café orgánico con notas limpias, tueste amable y una experiencia ligera para quienes prefieren una taza delicada.',4.50,7.50,80,20),
+(2,1,'CAF003','Café en Grano','1 kilogramo de granos seleccionados para molienda fresca, ideal para conservar aroma y controlar intensidad en cada preparación.',12.00,18.00,40,10),
+(3,1,'BEB001','Capuccino','Bebida caliente cremosa con textura suave y sabor balanceado, pensada para acompañar desayunos o pausas cortas.',1.20,2.50,150,30),
+(3,1,'BEB002','Latte','Bebida caliente de perfil más suave y lechoso, con una preparación cómoda para clientes que buscan una taza amable.',1.30,2.80,150,30);
 
 INSERT INTO clientes(cedula, nombres, apellidos, telefono, correo, direccion)
 VALUES

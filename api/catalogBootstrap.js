@@ -58,7 +58,7 @@ export async function ensureSellableShowcaseProducts() {
           codigo: 'EL-GEI-01',
           nombre: 'Cafe Geisha Origen El Oro',
           descripcion:
-            'Notas florales, dulces y acidez balanceada para una taza suave y elegante.',
+            'Cafe Geisha de El Oro con notas florales, dulzura marcada y acidez balanceada. Ideal para una taza suave, elegante y de alta expresion aromatica.',
           precio_compra: 10.5,
           precio_venta: 18.9,
           stock: 30,
@@ -70,7 +70,7 @@ export async function ensureSellableShowcaseProducts() {
           codigo: 'EL-BOU-01',
           nombre: 'Cafe Molido Espresso Bourbon',
           descripcion:
-            'Ideal para espresso, moka y prensa francesa, con cuerpo medio y chocolate.',
+            'Cafe Bourbon molido para espresso, moka y prensa francesa, con cuerpo medio, notas de chocolate y una taza redonda y persistente.',
           precio_compra: 9.2,
           precio_venta: 16.5,
           stock: 28,
@@ -82,7 +82,7 @@ export async function ensureSellableShowcaseProducts() {
           codigo: 'EL-TYP-01',
           nombre: 'Reserva Typica de Altura',
           descripcion:
-            'Cafe de altura de Zaruma con aroma intenso y final limpio para paladares exigentes.',
+            'Reserva Typica de altura de Zaruma con aroma intenso, final limpio y perfil clasico para paladares que buscan una taza refinada.',
           precio_compra: 11.4,
           precio_venta: 20.0,
           stock: 24,
@@ -93,7 +93,8 @@ export async function ensureSellableShowcaseProducts() {
           id_categoria: idCategoriaAccesorios,
           codigo: 'ACC-COMP-01',
           nombre: 'Compresa termica para cafe',
-          descripcion: 'Compresa termica reutilizable para conservar temperatura de bebidas.',
+          descripcion:
+            'Compresa termica reutilizable para conservar mejor la temperatura de bebidas durante mas tiempo y mejorar el servicio.',
           precio_compra: 2.4,
           precio_venta: 4.5,
           stock: 40,
@@ -104,7 +105,8 @@ export async function ensureSellableShowcaseProducts() {
           id_categoria: idCategoriaAccesorios,
           codigo: 'ACC-CAFETERA-01',
           nombre: 'Cafetera prensa francesa 600ml',
-          descripcion: 'Cafetera tipo prensa francesa para preparacion manual.',
+          descripcion:
+            'Cafetera tipo prensa francesa de 600 ml para una preparacion manual sencilla, practica y con mejor control de extraccion.',
           precio_compra: 12.5,
           precio_venta: 22.0,
           stock: 18,

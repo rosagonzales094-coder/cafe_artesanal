@@ -155,6 +155,54 @@ function getCatalogGroup(product) {
   return 'ARTESANAL'
 }
 
+function getProductDescription(product) {
+  const code = normalizeCode(product?.codigo)
+  const existingDescription = String(product?.descripcion || '').trim()
+  const name = normalizeText(product?.nombre)
+  const category = normalizeText(product?.categoria)
+
+  const descriptionByCode = {
+    'CAF-ZAR-250G':
+      'Cafe en grano de altura con tueste medio, aroma limpio y una taza equilibrada. Ideal para quienes quieren empezar el dia con un perfil suave, dulce y constante.',
+    'CAF-ZAR-500M':
+      'Cafe molido artesanal con notas de cacao, cuerpo medio y molienda lista para preparaciones rapidas. Mantiene una extraccion estable en cafetera, moka o filtro.',
+    'CAF-ZAR-1KG':
+      'Seleccion premium de granos de Zaruma pensada para hogares, oficinas o negocios que consumen cafe todos los dias. Ofrece mayor rendimiento sin perder frescura ni aroma.',
+    'CAF-DEC-250G':
+      'Perfil suave y balanceado para disfrutar cafe en la noche o en momentos de baja cafeina. Conserva sabor agradable, textura limpia y un final ligero.',
+    'PACK-DEG-4':
+      'Pack degustacion con cuatro presentaciones distintas para comparar sabores, intensidades y aromas. Es una buena opcion para regalo, prueba personal o clientes nuevos.',
+    'EL-GEI-01':
+      'Cafe Geisha de la zona de El Oro con notas florales, dulzura marcada y acidez balanceada. Es una experiencia delicada, elegante y pensada para paladares exigentes.',
+    'EL-BOU-01':
+      'Cafe Bourbon molido para espresso, moka y prensa francesa, con cuerpo medio, notas de chocolate y una taza redonda. Funciona bien en preparaciones intensas y aromaticas.',
+    'EL-TYP-01':
+      'Reserva Typica de altura con aroma intenso, final limpio y una expresion clasica del cafe de Zaruma. Recomendada para quienes buscan una taza refinada y persistente.',
+    'ACC-COMP-01':
+      'Compresa termica reutilizable para conservar la temperatura de bebidas durante mas tiempo. Practica, ligera y util para servicio, traslado o presentacion de cafe.',
+    'ACC-CAFETERA-01':
+      'Cafetera tipo prensa francesa de 600 ml para una extraccion manual simple y controlada. Ideal para preparar cafe con mas cuerpo, aroma y presencia en taza.',
+  }
+
+  if (descriptionByCode[code]) {
+    return descriptionByCode[code]
+  }
+
+  if (existingDescription.length >= 90) {
+    return existingDescription
+  }
+
+  if (code.startsWith('EL-') || name.includes('geisha') || name.includes('bourbon') || name.includes('typica')) {
+    return `${existingDescription || 'Cafe especial de perfil premium.'} Pensado para resaltar aroma, dulzor y balance en taza.`
+  }
+
+  if (category.includes('accesor')) {
+    return `${existingDescription || 'Accesorio para cafe.'} Aporta practicidad y mejora la experiencia diaria de preparacion y servicio.`
+  }
+
+  return `${existingDescription || 'Cafe artesanal seleccionado.'} Ideal para disfrutar en casa, compartir o incluir en una preparacion diaria con sabor consistente.`
+}
+
 const INITIAL_ADMIN_PRODUCT_FORM = {
   id_categoria: '',
   id_proveedor: '',
@@ -175,6 +223,8 @@ const CATEGORY_ACTION_DELETE = '__CATEGORY_ACTION_DELETE__'
 const MAX_COFFEE_UNITS_PER_ORDER = 6
 const CART_STORAGE_KEY = 'cafe_artesanal_cart_v1'
 const CART_TTL_MS = 2 * 24 * 60 * 60 * 1000
+const REVIEW_SCOPE_PRODUCT = 'PRODUCT'
+const REVIEW_SCOPE_APP = 'APP'
 
 function loadCartFromStorage() {
   if (typeof window === 'undefined') return []
@@ -217,6 +267,68 @@ function saveCartToStorage(items) {
 
 function isCoffeeForOrderLimit(product) {
   return getCatalogGroup(product) !== 'ACCESORIOS'
+}
+
+function normalizeReviewScope(scope) {
+  return String(scope || '').trim().toUpperCase()
+}
+
+function summarizeReviews(reviews) {
+  const safeReviews = Array.isArray(reviews) ? reviews : []
+  const count = safeReviews.length
+  const average = count
+    ? safeReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0) / count
+    : 0
+
+  return {
+    count,
+    average: Number(average.toFixed(1)),
+  }
+}
+
+function formatReviewDate(value) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return new Intl.DateTimeFormat('es-EC', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(date)
+}
+
+function ReviewStars({ rating }) {
+  const safeRating = Math.max(0, Math.min(5, Number(rating) || 0))
+  const fullStars = Math.round(safeRating)
+
+  return <span className="review-stars" aria-label={`Calificacion ${safeRating} de 5`}>{'★'.repeat(fullStars).padEnd(5, '☆')}</span>
+}
+
+function PasswordField({ name, value, onChange, placeholder, required = false }) {
+  const [showPassword, setShowPassword] = useState(false)
+
+  return (
+    <div className="password-field">
+      <input
+        type={showPassword ? 'text' : 'password'}
+        name={name}
+        placeholder={placeholder}
+        value={value}
+        onChange={onChange}
+        required={required}
+      />
+      <button
+        className="password-toggle-btn"
+        type="button"
+        onClick={() => setShowPassword((prev) => !prev)}
+        aria-pressed={showPassword}
+      >
+        {showPassword ? 'Ocultar' : 'Mostrar'}
+      </button>
+    </div>
+  )
 }
 
 function countCoffeeUnits(items) {
@@ -476,8 +588,7 @@ function Login({ onLogin, onNotify }) {
           onChange={onChange}
           required
         />
-        <input
-          type="password"
+        <PasswordField
           name="password"
           placeholder="Contrasena"
           value={form.password}
@@ -584,8 +695,7 @@ function Register({ onRegister, onNotify }) {
           onChange={onChange}
           required
         />
-        <input
-          type="password"
+        <PasswordField
           name="password"
           placeholder="Contrasena (minimo 8 caracteres)"
           value={form.password}
@@ -608,6 +718,10 @@ function Register({ onRegister, onNotify }) {
 function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage }) {
   const location = useLocation()
   const [products, setProducts] = useState([])
+  const [reviews, setReviews] = useState([])
+  const [reviewDrafts, setReviewDrafts] = useState({})
+  const [appReviewDraft, setAppReviewDraft] = useState({ rating: '5', comment: '' })
+  const [reviewSavingKey, setReviewSavingKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [adminMeta, setAdminMeta] = useState({ categorias: [], proveedores: [] })
@@ -709,6 +823,43 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     return map
   }, [cartItems])
 
+  const productReviewsById = useMemo(() => {
+    const map = new Map()
+
+    for (const review of reviews) {
+      if (normalizeReviewScope(review.scope) !== REVIEW_SCOPE_PRODUCT) continue
+
+      const idProducto = Number(review.id_producto)
+      if (!idProducto) continue
+
+      if (!map.has(idProducto)) {
+        map.set(idProducto, [])
+      }
+
+      map.get(idProducto).push(review)
+    }
+
+    return map
+  }, [reviews])
+
+  const appReviews = useMemo(
+    () => reviews.filter((review) => normalizeReviewScope(review.scope) === REVIEW_SCOPE_APP),
+    [reviews],
+  )
+
+  const appReviewSummary = useMemo(() => summarizeReviews(appReviews), [appReviews])
+
+  const reviewSummaryByProductId = useMemo(() => {
+    const map = new Map()
+
+    for (const product of products) {
+      const itemReviews = productReviewsById.get(Number(product.id_producto)) || []
+      map.set(Number(product.id_producto), summarizeReviews(itemReviews))
+    }
+
+    return map
+  }, [products, productReviewsById])
+
   const loadProducts = useCallback(async () => {
     const response = await fetch(`${API_URL}/products`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -737,12 +888,26 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     })
   }, [isAdmin, token])
 
+  const loadReviews = useCallback(async () => {
+    const response = await fetch(`${API_URL}/reviews`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'No se pudieron cargar las reseñas')
+    }
+
+    setReviews(Array.isArray(data.reviews) ? data.reviews : [])
+  }, [token])
+
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true)
 
         await loadProducts()
+        await loadReviews()
 
         if (isAdmin) {
           await loadAdminMeta()
@@ -755,7 +920,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
 
     loadData()
-  }, [token, isAdmin, loadProducts, loadAdminMeta])
+  }, [token, isAdmin, loadProducts, loadAdminMeta, loadReviews])
 
   const onAdminChange = (event) => {
     const { name, value } = event.target
@@ -1008,6 +1173,73 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     onAddToCart(product)
     const nuevoRestante = Math.max(restante - 1, 0)
     onNotify(`${product.nombre} se registro en el carrito. Quedan ${nuevoRestante}.`)
+  }
+
+  const updateProductReviewDraft = (productId, field, value) => {
+    setReviewDrafts((prev) => ({
+      ...prev,
+      [productId]: {
+        rating: '5',
+        comment: '',
+        ...(prev[productId] || {}),
+        [field]: value,
+      },
+    }))
+  }
+
+  const submitReview = async ({ scope, idProducto = null, draft, key }) => {
+    const rating = Number(draft?.rating)
+    const comment = String(draft?.comment || '').trim()
+
+    if (!rating || rating < 1 || rating > 5) {
+      onNotify('Selecciona una calificacion entre 1 y 5.')
+      return
+    }
+
+    if (!comment) {
+      onNotify('Escribe un comentario para enviar tu reseña.')
+      return
+    }
+
+    setReviewSavingKey(key)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          scope,
+          id_producto: idProducto,
+          rating,
+          comment,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo guardar la reseña')
+      }
+
+      onNotify(data.message || 'Reseña guardada correctamente.')
+      if (scope === REVIEW_SCOPE_PRODUCT && idProducto) {
+        setReviewDrafts((prev) => ({
+          ...prev,
+          [idProducto]: { rating: '5', comment: '' },
+        }))
+      } else if (scope === REVIEW_SCOPE_APP) {
+        setAppReviewDraft({ rating: '5', comment: '' })
+      }
+
+      await loadReviews()
+    } catch (requestError) {
+      onNotify(requestError.message)
+    } finally {
+      setReviewSavingKey('')
+    }
   }
 
   if (loading) {
@@ -1352,6 +1584,15 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           const esLimitada = getCatalogGroup(product) === 'LIMITADA'
           const esCafe = ['ARTESANAL', 'LIMITADA'].includes(getCatalogGroup(product))
           const productImageUrl = getProductImageUrl(product, index)
+          const productReviewSummary = reviewSummaryByProductId.get(Number(product.id_producto)) || {
+            count: 0,
+            average: 0,
+          }
+          const productReviews = productReviewsById.get(Number(product.id_producto)) || []
+          const currentDraft = reviewDrafts[product.id_producto] || {
+            rating: '5',
+            comment: '',
+          }
 
           return (
           <article
@@ -1387,11 +1628,81 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
             ) : null}
             <p className="category-tag">{product.categoria}</p>
             <h3>{product.nombre}</h3>
-            <p>{product.descripcion || 'Cafe de origen Zaruma, El Oro.'}</p>
+            <p>{getProductDescription(product)}</p>
+            <div className="review-summary-block">
+              <div className="review-summary-line">
+                <ReviewStars rating={productReviewSummary.average} />
+                <span>
+                  {productReviewSummary.count > 0
+                    ? `${productReviewSummary.average}/5 · ${productReviewSummary.count} reseñas`
+                    : 'Sin reseñas aun'}
+                </span>
+              </div>
+            </div>
             <p className={`stock-text ${stockActual === 0 ? 'stock-empty' : ''}`}>
               {esLimitada ? 'Edicion limitada' : 'Disponibilidad'}: stock{' '}
               <strong>{stockActual}</strong>
             </p>
+            <div className="product-review-panel">
+              <label className="review-field">
+                <span>Tu calificacion</span>
+                <select
+                  value={currentDraft.rating}
+                  onChange={(event) =>
+                    updateProductReviewDraft(product.id_producto, 'rating', event.target.value)
+                  }
+                >
+                  <option value="5">5 - Excelente</option>
+                  <option value="4">4 - Muy bueno</option>
+                  <option value="3">3 - Bueno</option>
+                  <option value="2">2 - Regular</option>
+                  <option value="1">1 - Malo</option>
+                </select>
+              </label>
+              <label className="review-field">
+                <span>Comentario</span>
+                <textarea
+                  rows="3"
+                  placeholder="Cuéntanos tu experiencia con este producto"
+                  value={currentDraft.comment}
+                  onChange={(event) =>
+                    updateProductReviewDraft(product.id_producto, 'comment', event.target.value)
+                  }
+                />
+              </label>
+              <button
+                className="btn btn-ghost review-submit-btn"
+                type="button"
+                onClick={() =>
+                  submitReview({
+                    scope: REVIEW_SCOPE_PRODUCT,
+                    idProducto: product.id_producto,
+                    draft: currentDraft,
+                    key: `product-${product.id_producto}`,
+                  })
+                }
+                disabled={reviewSavingKey === `product-${product.id_producto}`}
+              >
+                {reviewSavingKey === `product-${product.id_producto}`
+                  ? 'Guardando...'
+                  : 'Enviar reseña'}
+              </button>
+              <div className="review-list">
+                {productReviews.slice(0, 2).map((review) => (
+                  <article className="review-item" key={review.id_review}>
+                    <div className="review-item-head">
+                      <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
+                      <span>{formatReviewDate(review.created_at)}</span>
+                    </div>
+                    <ReviewStars rating={review.rating} />
+                    <p>{review.comment}</p>
+                  </article>
+                ))}
+                {productReviews.length === 0 ? (
+                  <p className="review-empty">Aun no hay reseñas para este producto.</p>
+                ) : null}
+              </div>
+            </div>
             <div className="product-foot">
               <strong>{currency(Number(product.precio))}</strong>
               <div className="product-actions">
@@ -1432,6 +1743,79 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           )
         })}
       </div>
+
+      <section className="card app-review-card">
+        <h3>Reseñas de la plataforma</h3>
+        <p className="review-intro">
+          Comparte tu experiencia general con el catalogo, el proceso de compra y la
+          atencion. Esto ayuda a mejorar toda la API y el servicio.
+        </p>
+        <div className="review-summary-line review-summary-app">
+          <ReviewStars rating={appReviewSummary.average} />
+          <span>
+            {appReviewSummary.count > 0
+              ? `${appReviewSummary.average}/5 · ${appReviewSummary.count} reseñas generales`
+              : 'Sin reseñas generales aun'}
+          </span>
+        </div>
+        <div className="product-review-panel">
+          <label className="review-field">
+            <span>Tu calificacion</span>
+            <select
+              value={appReviewDraft.rating}
+              onChange={(event) =>
+                setAppReviewDraft((prev) => ({ ...prev, rating: event.target.value }))
+              }
+            >
+              <option value="5">5 - Excelente</option>
+              <option value="4">4 - Muy bueno</option>
+              <option value="3">3 - Bueno</option>
+              <option value="2">2 - Regular</option>
+              <option value="1">1 - Malo</option>
+            </select>
+          </label>
+          <label className="review-field">
+            <span>Comentario</span>
+            <textarea
+              rows="3"
+              placeholder="Escribe cómo fue tu experiencia con la plataforma"
+              value={appReviewDraft.comment}
+              onChange={(event) =>
+                setAppReviewDraft((prev) => ({ ...prev, comment: event.target.value }))
+              }
+            />
+          </label>
+          <button
+            className="btn btn-solid review-submit-btn"
+            type="button"
+            onClick={() =>
+              submitReview({
+                scope: REVIEW_SCOPE_APP,
+                draft: appReviewDraft,
+                key: 'app-review',
+              })
+            }
+            disabled={reviewSavingKey === 'app-review'}
+          >
+            {reviewSavingKey === 'app-review' ? 'Guardando...' : 'Enviar comentario general'}
+          </button>
+        </div>
+        <div className="review-list review-list-wide">
+          {appReviews.slice(0, 3).map((review) => (
+            <article className="review-item" key={review.id_review}>
+              <div className="review-item-head">
+                <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
+                <span>{formatReviewDate(review.created_at)}</span>
+              </div>
+              <ReviewStars rating={review.rating} />
+              <p>{review.comment}</p>
+            </article>
+          ))}
+          {appReviews.length === 0 ? (
+            <p className="review-empty">Todavia no hay comentarios generales.</p>
+          ) : null}
+        </div>
+      </section>
     </section>
   )
 }

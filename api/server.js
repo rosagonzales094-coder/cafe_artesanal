@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 import authRoutes from './routes/authRoutes.js'
 import productRoutes from './routes/productRoutes.js'
 import orderRoutes from './routes/orderRoutes.js'
+import reviewRoutes from './routes/reviewRoutes.js'
 import { ensureSellableShowcaseProducts } from './catalogBootstrap.js'
 
 dotenv.config()
@@ -41,6 +42,7 @@ app.get('/api/catalog/pdf', (req, res) => {
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
 app.use('/api/orders', orderRoutes)
+app.use('/api/reviews', reviewRoutes)
 
 if (fs.existsSync(indexFile)) {
   app.use(express.static(distDir))
