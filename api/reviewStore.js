@@ -24,9 +24,32 @@ async function readReviews() {
   }
 }
 
-async function writeReviews(reviews) {
+function getReviewDateMs(review) {
+  const dateMs = new Date(review?.created_at || 0).getTime()
+  return Number.isFinite(dateMs) ? dateMs : 0
+}
+
+async function writeReviews(reviews, options = {}) {
   await ensureStoreFile()
-  await fs.writeFile(storePath, JSON.stringify(reviews, null, 2), 'utf8')
+  const { preserveExisting = true } = options
+  const existing = await readReviews()
+  const incoming = Array.isArray(reviews) ? reviews : []
+  const incomingById = new Map(incoming.map((review) => [Number(review.id_review) || 0, review]))
+
+  if (preserveExisting) {
+    for (const existingReview of existing) {
+      const existingId = Number(existingReview.id_review) || 0
+      if (!existingId) continue
+      if (incomingById.has(existingId)) continue
+      incomingById.set(existingId, existingReview)
+    }
+  }
+
+  const merged = Array.from(incomingById.values()).sort(
+    (left, right) => getReviewDateMs(left) - getReviewDateMs(right),
+  )
+
+  await fs.writeFile(storePath, JSON.stringify(merged, null, 2), 'utf8')
 }
 
 export async function getAllReviews() {
@@ -81,4 +104,18 @@ export async function updateReviewReply(idReview, replyData) {
 
   await writeReviews(reviews)
   return reviews[targetIndex]
+}
+
+export async function deleteReviewById(idReview) {
+  const reviews = await readReviews()
+  const nextReviews = reviews.filter(
+    (review) => Number(review.id_review) !== Number(idReview),
+  )
+
+  if (nextReviews.length === reviews.length) {
+    return false
+  }
+
+  await writeReviews(nextReviews, { preserveExisting: false })
+  return true
 }

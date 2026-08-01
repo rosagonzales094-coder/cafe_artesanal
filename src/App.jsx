@@ -339,6 +339,8 @@ function ReviewThreadList({
   onReplyDraftChange,
   onSubmitReply,
   replyingKey,
+  onDeleteReview,
+  deletingKey,
 }) {
   return (
     <div className="review-list review-list-wide">
@@ -387,6 +389,14 @@ function ReviewThreadList({
                     : hasReply
                       ? 'Actualizar respuesta'
                       : 'Responder'}
+                </button>
+                <button
+                  className="btn btn-danger review-submit-btn"
+                  type="button"
+                  onClick={() => onDeleteReview(reviewId)}
+                  disabled={deletingKey === replyKey}
+                >
+                  {deletingKey === replyKey ? 'Eliminando...' : 'Eliminar reseña'}
                 </button>
               </div>
             ) : null}
@@ -437,6 +447,8 @@ function PlatformReviewSection({
   onReplyDraftChange,
   onSubmitReply,
   replyingKey,
+  onDeleteReview,
+  deletingKey,
 }) {
   return (
     <section className="card app-review-card home-review-section">
@@ -497,6 +509,8 @@ function PlatformReviewSection({
         onReplyDraftChange={onReplyDraftChange}
         onSubmitReply={onSubmitReply}
         replyingKey={replyingKey}
+        onDeleteReview={onDeleteReview}
+        deletingKey={deletingKey}
       />
     </section>
   )
@@ -923,6 +937,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [reviewSavingKey, setReviewSavingKey] = useState('')
   const [reviewReplyDrafts, setReviewReplyDrafts] = useState({})
   const [reviewReplySavingKey, setReviewReplySavingKey] = useState('')
+  const [reviewDeleteSavingKey, setReviewDeleteSavingKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [adminMeta, setAdminMeta] = useState({ categorias: [], proveedores: [] })
@@ -1470,6 +1485,33 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
   }
 
+  const deleteReview = async (idReview) => {
+    const confirmed = window.confirm('¿Eliminar esta reseña de forma permanente?')
+    if (!confirmed) return
+
+    const deleteKey = `reply-${idReview}`
+    setReviewDeleteSavingKey(deleteKey)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews/${idReview}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo eliminar la reseña')
+      }
+
+      onNotify(data.message || 'Reseña eliminada correctamente.')
+      await loadReviews()
+    } catch (requestError) {
+      onNotify(requestError.message)
+    } finally {
+      setReviewDeleteSavingKey('')
+    }
+  }
+
   if (loading) {
     return <p className="status-text">Cargando catalogo...</p>
   }
@@ -1906,6 +1948,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 }
                 onSubmitReply={submitReviewReply}
                 replyingKey={reviewReplySavingKey}
+                onDeleteReview={deleteReview}
+                deletingKey={reviewDeleteSavingKey}
               />
             </div>
             <div className="product-foot">
@@ -2944,6 +2988,7 @@ function App() {
   const [appReviewSaving, setAppReviewSaving] = useState(false)
   const [appReviewReplyDrafts, setAppReviewReplyDrafts] = useState({})
   const [appReviewReplySavingKey, setAppReviewReplySavingKey] = useState('')
+  const [appReviewDeleteSavingKey, setAppReviewDeleteSavingKey] = useState('')
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   const [hasNewRequestAlert, setHasNewRequestAlert] = useState(false)
   const [myOrdersPendingCount, setMyOrdersPendingCount] = useState(0)
@@ -3354,6 +3399,33 @@ function App() {
     }
   }
 
+  const deleteAppReview = async (idReview) => {
+    const confirmed = window.confirm('¿Eliminar esta reseña de forma permanente?')
+    if (!confirmed) return
+
+    const deleteKey = `reply-${idReview}`
+    setAppReviewDeleteSavingKey(deleteKey)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews/${idReview}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo eliminar la reseña')
+      }
+
+      showToast(data.message || 'Reseña eliminada correctamente.')
+      await refreshAppReviews()
+    } catch (requestError) {
+      showToast(requestError.message)
+    } finally {
+      setAppReviewDeleteSavingKey('')
+    }
+  }
+
   return (
     <div className="page-shell">
       <header className="topbar">
@@ -3473,6 +3545,8 @@ function App() {
                 }
                 onSubmitReply={submitAppReviewReply}
                 replyingKey={appReviewReplySavingKey}
+                onDeleteReview={deleteAppReview}
+                deletingKey={appReviewDeleteSavingKey}
               />
             }
           />

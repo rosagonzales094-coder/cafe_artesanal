@@ -1,7 +1,12 @@
 import express from 'express'
 import pool from '../db.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
-import { addReview, getAllReviews, updateReviewReply } from '../reviewStore.js'
+import {
+  addReview,
+  deleteReviewById,
+  getAllReviews,
+  updateReviewReply,
+} from '../reviewStore.js'
 
 const router = express.Router()
 const REVIEW_SCOPES = new Set(['PRODUCT', 'APP'])
@@ -209,6 +214,26 @@ router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
     })
   } catch (error) {
     return res.status(500).json({ message: 'Error al guardar la respuesta', error })
+  }
+})
+
+router.delete('/:idReview', requireAuth, requireAdmin, async (req, res) => {
+  const idReview = Number(req.params.idReview)
+
+  if (!idReview) {
+    return res.status(400).json({ message: 'ID de reseña invalido' })
+  }
+
+  try {
+    const deleted = await deleteReviewById(idReview)
+
+    if (!deleted) {
+      return res.status(404).json({ message: 'Reseña no encontrada' })
+    }
+
+    return res.json({ message: 'Reseña eliminada correctamente' })
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al eliminar la reseña', error })
   }
 })
 
