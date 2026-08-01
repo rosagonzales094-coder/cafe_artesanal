@@ -64,6 +64,29 @@ router.get('/', requireAuth, async (req, res) => {
   }
 })
 
+router.get('/public', async (req, res) => {
+  try {
+    const reviews = await getAllReviews()
+    const publicReviews = reviews
+      .map((review) => ({
+        ...review,
+        scope: normalizeScope(review.scope),
+        rating: Number(review.rating) || 0,
+        id_producto: review.id_producto == null ? null : Number(review.id_producto),
+      }))
+      .filter((review) => review.scope === 'APP')
+      .sort((left, right) => {
+        const leftDate = new Date(left.created_at || 0).getTime()
+        const rightDate = new Date(right.created_at || 0).getTime()
+        return rightDate - leftDate
+      })
+
+    return res.json({ reviews: publicReviews })
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al cargar reseñas publicas', error })
+  }
+})
+
 router.post('/', requireAuth, async (req, res) => {
   const scope = normalizeScope(req.body?.scope)
   const rating = normalizeRating(req.body?.rating)

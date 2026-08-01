@@ -440,22 +440,26 @@ function PlatformReviewSection({
 }) {
   return (
     <section className="card app-review-card home-review-section">
-      <h3>Reseñas de la plataforma</h3>
+      <h3>Reseñas de nuestros clientes</h3>
       <p className="review-intro">
-        Comparte tu experiencia general con el catalogo, el proceso de compra y la
-        atencion. Esto ayuda a mejorar toda la API y el servicio.
+        <strong>Comparte tu experiencia con nuestros cafés artesanales.</strong>
+      </p>
+      <p className="review-intro review-intro-secondary">
+        Cuéntanos qué te pareció la calidad del café, el proceso de compra, la entrega y
+        nuestro servicio. Tu opinión nos ayuda a seguir ofreciendo una experiencia
+        excepcional.
       </p>
       <div className="review-summary-line review-summary-app">
         <ReviewStars rating={summary.average} />
         <span>
           {summary.count > 0
-            ? `${summary.average}/5 · ${summary.count} reseñas generales`
-            : 'Sin reseñas generales aun'}
+            ? `${summary.average}/5 · ${summary.count} reseñas`
+            : 'Aún no hay reseñas'}
         </span>
       </div>
         <ReviewThreadList
           reviews={reviews}
-          emptyText="Todavia no hay comentarios generales."
+          emptyText="Sé el primero en compartir tu experiencia y ayuda a otros amantes del café a descubrir nuestros productos."
           isAdmin={isAdmin}
           replyDrafts={replyDrafts}
           onReplyDraftChange={onReplyDraftChange}
@@ -2963,15 +2967,8 @@ function App() {
   const appReviewSummary = useMemo(() => summarizeReviews(appReviews), [appReviews])
 
   const refreshAppReviews = useCallback(async () => {
-    if (!token) {
-      setAppReviews([])
-      return
-    }
-
     try {
-      const response = await fetch(`${API_URL}/reviews`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      const response = await fetch(`${API_URL}/reviews/public`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -2988,7 +2985,7 @@ function App() {
     } catch {
       setAppReviews([])
     }
-  }, [token])
+  }, [])
 
   const showToast = useCallback((message) => {
     setCartToast(message)
