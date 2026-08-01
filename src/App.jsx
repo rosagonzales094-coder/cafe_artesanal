@@ -306,6 +306,31 @@ function ReviewStars({ rating }) {
   return <span className="review-stars" aria-label={`Calificacion ${safeRating} de 5`}>{'★'.repeat(fullStars).padEnd(5, '☆')}</span>
 }
 
+function RatingPicker({ value, onChange, label }) {
+  const selectedValue = Math.max(1, Math.min(5, Number(value) || 5))
+
+  return (
+    <div className="review-field">
+      <span>{label}</span>
+      <div className="rating-picker" role="radiogroup" aria-label={label}>
+        {[1, 2, 3, 4, 5].map((rating) => (
+          <button
+            key={rating}
+            type="button"
+            className={`rating-star-btn ${rating <= selectedValue ? 'active' : ''}`}
+            onClick={() => onChange(String(rating))}
+            aria-pressed={rating === selectedValue}
+            aria-label={`${rating} estrella${rating === 1 ? '' : 's'}`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <p className="rating-picker-label">{selectedValue}/5</p>
+    </div>
+  )
+}
+
 function PasswordField({ name, value, onChange, placeholder, required = false }) {
   const [showPassword, setShowPassword] = useState(false)
 
@@ -358,19 +383,11 @@ function PlatformReviewSection({
 
       {isAuthenticated ? (
         <div className="product-review-panel">
-          <label className="review-field">
-            <span>Tu calificacion</span>
-            <select
-              value={draft.rating}
-              onChange={(event) => onDraftChange((prev) => ({ ...prev, rating: event.target.value }))}
-            >
-              <option value="5">5 - Excelente</option>
-              <option value="4">4 - Muy bueno</option>
-              <option value="3">3 - Bueno</option>
-              <option value="2">2 - Regular</option>
-              <option value="1">1 - Malo</option>
-            </select>
-          </label>
+          <RatingPicker
+            label="Tu calificacion"
+            value={draft.rating}
+            onChange={(rating) => onDraftChange((prev) => ({ ...prev, rating }))}
+          />
           <label className="review-field">
             <span>Comentario</span>
             <textarea
@@ -396,7 +413,7 @@ function PlatformReviewSection({
       )}
 
       <div className="review-list review-list-wide">
-        {reviews.slice(0, 3).map((review) => (
+        {reviews.map((review) => (
           <article className="review-item" key={review.id_review}>
             <div className="review-item-head">
               <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
@@ -1736,21 +1753,13 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               <strong>{stockActual}</strong>
             </p>
             <div className="product-review-panel">
-              <label className="review-field">
-                <span>Tu calificacion</span>
-                <select
-                  value={currentDraft.rating}
-                  onChange={(event) =>
-                    updateProductReviewDraft(product.id_producto, 'rating', event.target.value)
-                  }
-                >
-                  <option value="5">5 - Excelente</option>
-                  <option value="4">4 - Muy bueno</option>
-                  <option value="3">3 - Bueno</option>
-                  <option value="2">2 - Regular</option>
-                  <option value="1">1 - Malo</option>
-                </select>
-              </label>
+              <RatingPicker
+                label="Tu calificacion"
+                value={currentDraft.rating}
+                onChange={(rating) =>
+                  updateProductReviewDraft(product.id_producto, 'rating', rating)
+                }
+              />
               <button
                 className="btn btn-ghost review-submit-btn"
                 type="button"
@@ -1769,7 +1778,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                   : 'Enviar reseña'}
               </button>
               <div className="review-list">
-                {productReviews.slice(0, 2).map((review) => (
+                {productReviews.map((review) => (
                   <article className="review-item" key={review.id_review}>
                     <div className="review-item-head">
                       <strong>{review.author_name || review.usuario || 'Cliente'}</strong>

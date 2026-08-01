@@ -860,6 +860,50 @@ input:focus {
   font-weight: 700;
 }
 
+.rating-picker {
+  display: inline-flex;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
+.rating-star-btn {
+  border: 1px solid rgba(255, 219, 160, 0.25);
+  background: rgba(255, 244, 226, 0.08);
+  color: #8a6b47;
+  border-radius: 999px;
+  width: 2.15rem;
+  height: 2.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, color 160ms ease,
+    border-color 160ms ease;
+}
+
+.rating-star-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 219, 160, 0.48);
+}
+
+.rating-star-btn.active {
+  color: #ffd56b;
+  background: rgba(255, 213, 107, 0.18);
+  border-color: rgba(255, 213, 107, 0.45);
+}
+
+.rating-star-btn:focus-visible {
+  outline: 2px solid rgba(255, 188, 89, 0.72);
+  outline-offset: 2px;
+}
+
+.rating-picker-label {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #f0d4a2;
+}
+
 .review-field textarea {
   resize: vertical;
   min-height: 82px;
