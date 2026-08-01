@@ -331,6 +331,89 @@ function PasswordField({ name, value, onChange, placeholder, required = false })
   )
 }
 
+function PlatformReviewSection({
+  isAuthenticated,
+  reviews,
+  summary,
+  draft,
+  saving,
+  onDraftChange,
+  onSubmitReview,
+}) {
+  return (
+    <section className="card app-review-card home-review-section">
+      <h3>Reseñas de la plataforma</h3>
+      <p className="review-intro">
+        Comparte tu experiencia general con el catalogo, el proceso de compra y la
+        atencion. Esto ayuda a mejorar toda la API y el servicio.
+      </p>
+      <div className="review-summary-line review-summary-app">
+        <ReviewStars rating={summary.average} />
+        <span>
+          {summary.count > 0
+            ? `${summary.average}/5 · ${summary.count} reseñas generales`
+            : 'Sin reseñas generales aun'}
+        </span>
+      </div>
+
+      {isAuthenticated ? (
+        <div className="product-review-panel">
+          <label className="review-field">
+            <span>Tu calificacion</span>
+            <select
+              value={draft.rating}
+              onChange={(event) => onDraftChange((prev) => ({ ...prev, rating: event.target.value }))}
+            >
+              <option value="5">5 - Excelente</option>
+              <option value="4">4 - Muy bueno</option>
+              <option value="3">3 - Bueno</option>
+              <option value="2">2 - Regular</option>
+              <option value="1">1 - Malo</option>
+            </select>
+          </label>
+          <label className="review-field">
+            <span>Comentario</span>
+            <textarea
+              rows="3"
+              placeholder="Escribe cómo fue tu experiencia con la plataforma"
+              value={draft.comment}
+              onChange={(event) => onDraftChange((prev) => ({ ...prev, comment: event.target.value }))}
+            />
+          </label>
+          <button
+            className="btn btn-solid review-submit-btn"
+            type="button"
+            onClick={onSubmitReview}
+            disabled={saving}
+          >
+            {saving ? 'Guardando...' : 'Enviar comentario general'}
+          </button>
+        </div>
+      ) : (
+        <p className="status-text review-login-note">
+          Inicia sesion para dejar tu comentario general sobre la plataforma.
+        </p>
+      )}
+
+      <div className="review-list review-list-wide">
+        {reviews.slice(0, 3).map((review) => (
+          <article className="review-item" key={review.id_review}>
+            <div className="review-item-head">
+              <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
+              <span>{formatReviewDate(review.created_at)}</span>
+            </div>
+            <ReviewStars rating={review.rating} />
+            <p>{review.comment}</p>
+          </article>
+        ))}
+        {reviews.length === 0 ? (
+          <p className="review-empty">Todavia no hay comentarios generales.</p>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
 function countCoffeeUnits(items) {
   return items.reduce((total, item) => {
     if (!isCoffeeForOrderLimit(item)) return total
@@ -412,7 +495,16 @@ function WhatsAppButton() {
   )
 }
 
-function Home({ onPreviewImage }) {
+function Home({
+  onPreviewImage,
+  isAuthenticated,
+  appReviews,
+  appReviewSummary,
+  appReviewDraft,
+  appReviewSaving,
+  onAppReviewDraftChange,
+  onSubmitAppReview,
+}) {
   return (
     <>
       <section className="hero-home" id="sobre-nosotros">
@@ -538,6 +630,16 @@ function Home({ onPreviewImage }) {
           ))}
         </div>
       </section>
+
+      <PlatformReviewSection
+        isAuthenticated={isAuthenticated}
+        reviews={appReviews}
+        summary={appReviewSummary}
+        draft={appReviewDraft}
+        saving={appReviewSaving}
+        onDraftChange={onAppReviewDraftChange}
+        onSubmitReview={onSubmitAppReview}
+      />
     </>
   )
 }
@@ -720,7 +822,6 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
   const [reviewDrafts, setReviewDrafts] = useState({})
-  const [appReviewDraft, setAppReviewDraft] = useState({ rating: '5', comment: '' })
   const [reviewSavingKey, setReviewSavingKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -842,13 +943,6 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     return map
   }, [reviews])
 
-  const appReviews = useMemo(
-    () => reviews.filter((review) => normalizeReviewScope(review.scope) === REVIEW_SCOPE_APP),
-    [reviews],
-  )
-
-  const appReviewSummary = useMemo(() => summarizeReviews(appReviews), [appReviews])
-
   const reviewSummaryByProductId = useMemo(() => {
     const map = new Map()
 
@@ -898,7 +992,13 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
       throw new Error(data.message || 'No se pudieron cargar las reseñas')
     }
 
-    setReviews(Array.isArray(data.reviews) ? data.reviews : [])
+    const productReviews = Array.isArray(data.reviews)
+      ? data.reviews.filter(
+          (review) => normalizeReviewScope(review.scope) === REVIEW_SCOPE_PRODUCT,
+        )
+      : []
+
+    setReviews(productReviews)
   }, [token])
 
   useEffect(() => {
@@ -1230,8 +1330,6 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           ...prev,
           [idProducto]: { rating: '5', comment: '' },
         }))
-      } else if (scope === REVIEW_SCOPE_APP) {
-        setAppReviewDraft({ rating: '5', comment: '' })
       }
 
       await loadReviews()
@@ -1744,78 +1842,6 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
         })}
       </div>
 
-      <section className="card app-review-card">
-        <h3>Reseñas de la plataforma</h3>
-        <p className="review-intro">
-          Comparte tu experiencia general con el catalogo, el proceso de compra y la
-          atencion. Esto ayuda a mejorar toda la API y el servicio.
-        </p>
-        <div className="review-summary-line review-summary-app">
-          <ReviewStars rating={appReviewSummary.average} />
-          <span>
-            {appReviewSummary.count > 0
-              ? `${appReviewSummary.average}/5 · ${appReviewSummary.count} reseñas generales`
-              : 'Sin reseñas generales aun'}
-          </span>
-        </div>
-        <div className="product-review-panel">
-          <label className="review-field">
-            <span>Tu calificacion</span>
-            <select
-              value={appReviewDraft.rating}
-              onChange={(event) =>
-                setAppReviewDraft((prev) => ({ ...prev, rating: event.target.value }))
-              }
-            >
-              <option value="5">5 - Excelente</option>
-              <option value="4">4 - Muy bueno</option>
-              <option value="3">3 - Bueno</option>
-              <option value="2">2 - Regular</option>
-              <option value="1">1 - Malo</option>
-            </select>
-          </label>
-          <label className="review-field">
-            <span>Comentario</span>
-            <textarea
-              rows="3"
-              placeholder="Escribe cómo fue tu experiencia con la plataforma"
-              value={appReviewDraft.comment}
-              onChange={(event) =>
-                setAppReviewDraft((prev) => ({ ...prev, comment: event.target.value }))
-              }
-            />
-          </label>
-          <button
-            className="btn btn-solid review-submit-btn"
-            type="button"
-            onClick={() =>
-              submitReview({
-                scope: REVIEW_SCOPE_APP,
-                draft: appReviewDraft,
-                key: 'app-review',
-              })
-            }
-            disabled={reviewSavingKey === 'app-review'}
-          >
-            {reviewSavingKey === 'app-review' ? 'Guardando...' : 'Enviar comentario general'}
-          </button>
-        </div>
-        <div className="review-list review-list-wide">
-          {appReviews.slice(0, 3).map((review) => (
-            <article className="review-item" key={review.id_review}>
-              <div className="review-item-head">
-                <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
-                <span>{formatReviewDate(review.created_at)}</span>
-              </div>
-              <ReviewStars rating={review.rating} />
-              <p>{review.comment}</p>
-            </article>
-          ))}
-          {appReviews.length === 0 ? (
-            <p className="review-empty">Todavia no hay comentarios generales.</p>
-          ) : null}
-        </div>
-      </section>
     </section>
   )
 }
@@ -2806,6 +2832,9 @@ function App() {
   const [cartItems, setCartItems] = useState(() => loadCartFromStorage())
   const [cartToast, setCartToast] = useState('')
   const [previewImage, setPreviewImage] = useState(null)
+  const [appReviews, setAppReviews] = useState([])
+  const [appReviewDraft, setAppReviewDraft] = useState({ rating: '5', comment: '' })
+  const [appReviewSaving, setAppReviewSaving] = useState(false)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   const [hasNewRequestAlert, setHasNewRequestAlert] = useState(false)
   const [myOrdersPendingCount, setMyOrdersPendingCount] = useState(0)
@@ -2816,6 +2845,30 @@ function App() {
   const isAuthenticated = Boolean(token)
   const isAdmin = String(user?.rol || '').trim().toLowerCase() === 'administrador'
   const cartCount = cartItems.reduce((acc, item) => acc + Number(item.cantidad || 0), 0)
+
+  const appReviewSummary = useMemo(() => summarizeReviews(appReviews), [appReviews])
+
+  const refreshAppReviews = useCallback(async () => {
+    if (!token) {
+      setAppReviews([])
+      return
+    }
+
+    try {
+      const response = await fetch(`${API_URL}/reviews`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudieron cargar las reseñas')
+      }
+
+      setAppReviews(Array.isArray(data.reviews) ? data.reviews : [])
+    } catch {
+      setAppReviews([])
+    }
+  }, [token])
 
   const showToast = useCallback((message) => {
     setCartToast(message)
@@ -2834,6 +2887,14 @@ function App() {
   useEffect(() => {
     saveCartToStorage(cartItems)
   }, [cartItems])
+
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      void refreshAppReviews()
+    }, 0)
+
+    return () => window.clearTimeout(timerId)
+  }, [refreshAppReviews])
 
   useEffect(() => {
     if (!previewImage) return undefined
@@ -3099,6 +3160,56 @@ function App() {
     setPreviewImage(image)
   }, [])
 
+  const submitAppReview = async () => {
+    const rating = Number(appReviewDraft?.rating)
+    const comment = String(appReviewDraft?.comment || '').trim()
+
+    if (!token) {
+      showToast('Inicia sesion para enviar una reseña general.')
+      return
+    }
+
+    if (!rating || rating < 1 || rating > 5) {
+      showToast('Selecciona una calificacion entre 1 y 5.')
+      return
+    }
+
+    if (!comment) {
+      showToast('Escribe un comentario para enviar tu reseña.')
+      return
+    }
+
+    setAppReviewSaving(true)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          scope: REVIEW_SCOPE_APP,
+          rating,
+          comment,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo guardar la reseña')
+      }
+
+      showToast(data.message || 'Reseña guardada correctamente.')
+      setAppReviewDraft({ rating: '5', comment: '' })
+      await refreshAppReviews()
+    } catch (requestError) {
+      showToast(requestError.message)
+    } finally {
+      setAppReviewSaving(false)
+    }
+  }
+
   return (
     <div className="page-shell">
       <header className="topbar">
@@ -3199,7 +3310,21 @@ function App() {
 
       <main className="content-wrap">
         <Routes>
-          <Route path="/" element={<Home onPreviewImage={openPreviewImage} />} />
+          <Route
+            path="/"
+            element={
+              <Home
+                onPreviewImage={openPreviewImage}
+                isAuthenticated={isAuthenticated}
+                appReviews={appReviews}
+                appReviewSummary={appReviewSummary}
+                appReviewDraft={appReviewDraft}
+                appReviewSaving={appReviewSaving}
+                onAppReviewDraftChange={setAppReviewDraft}
+                onSubmitAppReview={submitAppReview}
+              />
+            }
+          />
           <Route
             path="/login"
             element={<Login onLogin={handleAuth} onNotify={showToast} />}
