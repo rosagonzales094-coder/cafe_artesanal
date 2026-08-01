@@ -1542,7 +1542,9 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
         throw new Error(data.message || 'No se pudo eliminar la reseña')
       }
 
-      onNotify(data.message || 'Reseña eliminada correctamente.')
+      const successMessage = data.message || 'Reseña eliminada correctamente.'
+      onNotify(successMessage)
+      window.alert(successMessage)
       await loadReviews()
     } catch (requestError) {
       onNotify(requestError.message)
@@ -3459,7 +3461,9 @@ function App() {
         throw new Error(data.message || 'No se pudo eliminar la reseña')
       }
 
-      showToast(data.message || 'Reseña eliminada correctamente.')
+      const successMessage = data.message || 'Reseña eliminada correctamente.'
+      showToast(successMessage)
+      window.alert(successMessage)
       await refreshAppReviews()
     } catch (requestError) {
       showToast(requestError.message)
