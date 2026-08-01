@@ -56,3 +56,29 @@ export async function addReview(review) {
   await writeReviews(reviews)
   return normalized
 }
+
+export async function updateReviewReply(idReview, replyData) {
+  const reviews = await readReviews()
+  const targetIndex = reviews.findIndex(
+    (review) => Number(review.id_review) === Number(idReview),
+  )
+
+  if (targetIndex < 0) {
+    return null
+  }
+
+  const nextReply = {
+    reply: String(replyData.reply || '').trim(),
+    reply_at: replyData.reply_at || new Date().toISOString(),
+    reply_author_name: String(replyData.reply_author_name || '').trim(),
+    reply_usuario: String(replyData.reply_usuario || '').trim(),
+  }
+
+  reviews[targetIndex] = {
+    ...reviews[targetIndex],
+    ...nextReply,
+  }
+
+  await writeReviews(reviews)
+  return reviews[targetIndex]
+}

@@ -1,7 +1,7 @@
 import express from 'express'
 import pool from '../db.js'
-import { requireAuth } from '../middleware/auth.js'
-import { addReview, getAllReviews } from '../reviewStore.js'
+import { requireAdmin, requireAuth } from '../middleware/auth.js'
+import { addReview, getAllReviews, updateReviewReply } from '../reviewStore.js'
 
 const router = express.Router()
 const REVIEW_SCOPES = new Set(['PRODUCT', 'APP'])
@@ -17,6 +17,10 @@ function normalizeRating(value) {
   }
 
   return Math.min(5, Math.max(1, Math.round(rating)))
+}
+
+function normalizeReply(reply) {
+  return String(reply || '').trim()
 }
 
 async function resolveAuthor(connection, reqUser) {
@@ -137,6 +141,51 @@ router.post('/', requireAuth, async (req, res) => {
     if (connection) {
       connection.release()
     }
+  }
+})
+
+router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
+  const idReview = Number(req.params.idReview)
+  const reply = normalizeReply(req.body?.reply)
+
+  if (!idReview) {
+    return res.status(400).json({ message: 'ID de reseña invalido' })
+  }
+
+  if (!reply) {
+    return res.status(400).json({ message: 'Escribe una respuesta' })
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT u.usuario, c.nombres, c.apellidos
+       FROM usuarios u
+       LEFT JOIN clientes c ON c.id_cliente = u.id_cliente
+       WHERE u.id_usuario = ?
+       LIMIT 1`,
+      [req.user.id_usuario],
+    )
+
+    const admin = rows[0]
+    const adminName = [admin?.nombres, admin?.apellidos].filter(Boolean).join(' ').trim()
+
+    const updatedReview = await updateReviewReply(idReview, {
+      reply,
+      reply_at: new Date().toISOString(),
+      reply_author_name: adminName || req.user.usuario || 'Administrador',
+      reply_usuario: admin?.usuario || req.user.usuario || 'Administrador',
+    })
+
+    if (!updatedReview) {
+      return res.status(404).json({ message: 'Reseña no encontrada' })
+    }
+
+    return res.json({
+      message: 'Respuesta guardada correctamente',
+      review: updatedReview,
+    })
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al guardar la respuesta', error })
   }
 })
 

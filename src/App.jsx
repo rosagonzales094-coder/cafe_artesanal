@@ -331,6 +331,74 @@ function RatingPicker({ value, onChange, label }) {
   )
 }
 
+function ReviewThreadList({
+  reviews,
+  emptyText,
+  isAdmin,
+  replyDrafts,
+  onReplyDraftChange,
+  onSubmitReply,
+  replyingKey,
+}) {
+  return (
+    <div className="review-list review-list-wide">
+      {reviews.map((review) => {
+        const reviewId = Number(review.id_review)
+        const replyValue = replyDrafts[reviewId] ?? review.reply ?? ''
+        const hasReply = String(review.reply || '').trim().length > 0
+        const replyKey = `reply-${reviewId}`
+
+        return (
+          <article className="review-item" key={review.id_review}>
+            <div className="review-item-head">
+              <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
+              <span>{formatReviewDate(review.created_at)}</span>
+            </div>
+            <ReviewStars rating={review.rating} />
+            {review.comment ? <p>{review.comment}</p> : null}
+            {hasReply ? (
+              <div className="review-reply-box">
+                <p className="review-reply-label">Respuesta</p>
+                <p className="review-reply-text">{review.reply}</p>
+                <p className="review-reply-meta">
+                  {review.reply_author_name || review.reply_usuario || 'Administrador'}
+                  {review.reply_at ? ` · ${formatReviewDate(review.reply_at)}` : ''}
+                </p>
+              </div>
+            ) : null}
+            {isAdmin ? (
+              <div className="review-reply-form">
+                <textarea
+                  rows="2"
+                  placeholder="Responder comentario"
+                  value={replyValue}
+                  onChange={(event) =>
+                    onReplyDraftChange(reviewId, event.target.value)
+                  }
+                />
+                <button
+                  className="btn btn-ghost review-submit-btn"
+                  type="button"
+                  onClick={() => onSubmitReply(reviewId, replyValue)}
+                  disabled={replyingKey === replyKey}
+                >
+                  {replyingKey === replyKey
+                    ? 'Enviando...'
+                    : hasReply
+                      ? 'Actualizar respuesta'
+                      : 'Responder'}
+                </button>
+              </div>
+            ) : null}
+          </article>
+        )
+      })}
+
+      {reviews.length === 0 ? <p className="review-empty">{emptyText}</p> : null}
+    </div>
+  )
+}
+
 function PasswordField({ name, value, onChange, placeholder, required = false }) {
   const [showPassword, setShowPassword] = useState(false)
 
@@ -358,12 +426,17 @@ function PasswordField({ name, value, onChange, placeholder, required = false })
 
 function PlatformReviewSection({
   isAuthenticated,
+  isAdmin,
   reviews,
   summary,
   draft,
   saving,
   onDraftChange,
   onSubmitReview,
+  replyDrafts,
+  onReplyDraftChange,
+  onSubmitReply,
+  replyingKey,
 }) {
   return (
     <section className="card app-review-card home-review-section">
@@ -380,6 +453,15 @@ function PlatformReviewSection({
             : 'Sin reseñas generales aun'}
         </span>
       </div>
+        <ReviewThreadList
+          reviews={reviews}
+          emptyText="Todavia no hay comentarios generales."
+          isAdmin={isAdmin}
+          replyDrafts={replyDrafts}
+          onReplyDraftChange={onReplyDraftChange}
+          onSubmitReply={onSubmitReply}
+          replyingKey={replyingKey}
+        />
 
       {isAuthenticated ? (
         <div className="product-review-panel">
@@ -412,21 +494,15 @@ function PlatformReviewSection({
         </p>
       )}
 
-      <div className="review-list review-list-wide">
-        {reviews.map((review) => (
-          <article className="review-item" key={review.id_review}>
-            <div className="review-item-head">
-              <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
-              <span>{formatReviewDate(review.created_at)}</span>
-            </div>
-            <ReviewStars rating={review.rating} />
-            <p>{review.comment}</p>
-          </article>
-        ))}
-        {reviews.length === 0 ? (
-          <p className="review-empty">Todavia no hay comentarios generales.</p>
-        ) : null}
-      </div>
+      <ReviewThreadList
+        reviews={reviews}
+        emptyText="Todavia no hay comentarios generales."
+        isAdmin={isAdmin}
+        replyDrafts={replyDrafts}
+        onReplyDraftChange={onReplyDraftChange}
+        onSubmitReply={onSubmitReply}
+        replyingKey={replyingKey}
+      />
     </section>
   )
 }
@@ -515,12 +591,17 @@ function WhatsAppButton() {
 function Home({
   onPreviewImage,
   isAuthenticated,
+  isAdmin,
   appReviews,
   appReviewSummary,
   appReviewDraft,
   appReviewSaving,
   onAppReviewDraftChange,
   onSubmitAppReview,
+  replyDrafts,
+  onReplyDraftChange,
+  onSubmitReply,
+  replyingKey,
 }) {
   return (
     <>
@@ -650,12 +731,17 @@ function Home({
 
       <PlatformReviewSection
         isAuthenticated={isAuthenticated}
+        isAdmin={isAdmin}
         reviews={appReviews}
         summary={appReviewSummary}
         draft={appReviewDraft}
         saving={appReviewSaving}
         onDraftChange={onAppReviewDraftChange}
         onSubmitReview={onSubmitAppReview}
+        replyDrafts={replyDrafts}
+        onReplyDraftChange={onReplyDraftChange}
+        onSubmitReply={onSubmitReply}
+        replyingKey={replyingKey}
       />
     </>
   )
@@ -840,6 +926,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [reviews, setReviews] = useState([])
   const [reviewDrafts, setReviewDrafts] = useState({})
   const [reviewSavingKey, setReviewSavingKey] = useState('')
+  const [reviewReplyDrafts, setReviewReplyDrafts] = useState({})
+  const [reviewReplySavingKey, setReviewReplySavingKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [adminMeta, setAdminMeta] = useState({ categorias: [], proveedores: [] })
@@ -1351,6 +1439,42 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
   }
 
+  const submitReviewReply = async (idReview, reply) => {
+    const replyText = String(reply || '').trim()
+
+    if (!replyText) {
+      onNotify('Escribe una respuesta.')
+      return
+    }
+
+    const replyKey = `reply-${idReview}`
+    setReviewReplySavingKey(replyKey)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews/${idReview}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reply: replyText }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo guardar la respuesta')
+      }
+
+      onNotify(data.message || 'Respuesta guardada correctamente.')
+      setReviewReplyDrafts((prev) => ({ ...prev, [idReview]: replyText }))
+      await loadReviews()
+    } catch (requestError) {
+      onNotify(requestError.message)
+    } finally {
+      setReviewReplySavingKey('')
+    }
+  }
+
   if (loading) {
     return <p className="status-text">Cargando catalogo...</p>
   }
@@ -1777,21 +1901,17 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                   ? 'Guardando...'
                   : 'Enviar reseña'}
               </button>
-              <div className="review-list">
-                {productReviews.map((review) => (
-                  <article className="review-item" key={review.id_review}>
-                    <div className="review-item-head">
-                      <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
-                      <span>{formatReviewDate(review.created_at)}</span>
-                    </div>
-                    <ReviewStars rating={review.rating} />
-                    <p>{review.comment}</p>
-                  </article>
-                ))}
-                {productReviews.length === 0 ? (
-                  <p className="review-empty">Aun no hay reseñas para este producto.</p>
-                ) : null}
-              </div>
+              <ReviewThreadList
+                reviews={productReviews}
+                emptyText="Aun no hay reseñas para este producto."
+                isAdmin={isAdmin}
+                replyDrafts={reviewReplyDrafts}
+                onReplyDraftChange={(reviewId, value) =>
+                  setReviewReplyDrafts((prev) => ({ ...prev, [reviewId]: value }))
+                }
+                onSubmitReply={submitReviewReply}
+                replyingKey={reviewReplySavingKey}
+              />
             </div>
             <div className="product-foot">
               <strong>{currency(Number(product.precio))}</strong>
@@ -2827,6 +2947,8 @@ function App() {
   const [appReviews, setAppReviews] = useState([])
   const [appReviewDraft, setAppReviewDraft] = useState({ rating: '5', comment: '' })
   const [appReviewSaving, setAppReviewSaving] = useState(false)
+  const [appReviewReplyDrafts, setAppReviewReplyDrafts] = useState({})
+  const [appReviewReplySavingKey, setAppReviewReplySavingKey] = useState('')
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   const [hasNewRequestAlert, setHasNewRequestAlert] = useState(false)
   const [myOrdersPendingCount, setMyOrdersPendingCount] = useState(0)
@@ -3208,6 +3330,42 @@ function App() {
     }
   }
 
+  const submitAppReviewReply = async (idReview, reply) => {
+    const replyText = String(reply || '').trim()
+
+    if (!replyText) {
+      showToast('Escribe una respuesta.')
+      return
+    }
+
+    const replyKey = `reply-${idReview}`
+    setAppReviewReplySavingKey(replyKey)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews/${idReview}/reply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reply: replyText }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo guardar la respuesta')
+      }
+
+      showToast(data.message || 'Respuesta guardada correctamente.')
+      setAppReviewReplyDrafts((prev) => ({ ...prev, [idReview]: replyText }))
+      await refreshAppReviews()
+    } catch (requestError) {
+      showToast(requestError.message)
+    } finally {
+      setAppReviewReplySavingKey('')
+    }
+  }
+
   return (
     <div className="page-shell">
       <header className="topbar">
@@ -3314,12 +3472,19 @@ function App() {
               <Home
                 onPreviewImage={openPreviewImage}
                 isAuthenticated={isAuthenticated}
+                isAdmin={isAdmin}
                 appReviews={appReviews}
                 appReviewSummary={appReviewSummary}
                 appReviewDraft={appReviewDraft}
                 appReviewSaving={appReviewSaving}
                 onAppReviewDraftChange={setAppReviewDraft}
                 onSubmitAppReview={submitAppReview}
+                replyDrafts={appReviewReplyDrafts}
+                onReplyDraftChange={(reviewId, value) =>
+                  setAppReviewReplyDrafts((prev) => ({ ...prev, [reviewId]: value }))
+                }
+                onSubmitReply={submitAppReviewReply}
+                replyingKey={appReviewReplySavingKey}
               />
             }
           />

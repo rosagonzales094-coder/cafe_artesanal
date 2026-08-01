@@ -951,6 +951,45 @@ input:focus {
   font-size: 0.86rem;
 }
 
+.review-reply-box {
+  margin-top: 0.7rem;
+  padding: 0.7rem 0.78rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 219, 160, 0.18);
+  background: rgba(255, 244, 226, 0.06);
+}
+
+.review-reply-label {
+  margin: 0 0 0.28rem;
+  color: #ffd47f;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.review-reply-text {
+  margin: 0;
+  color: #fff0d3;
+  font-size: 0.86rem;
+}
+
+.review-reply-meta {
+  margin: 0.4rem 0 0;
+  color: #d9b98a;
+  font-size: 0.75rem;
+}
+
+.review-reply-form {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.review-reply-form textarea {
+  min-height: 70px;
+}
+
 .review-empty {
   margin: 0;
   color: #d8ba8d;
