@@ -74,7 +74,7 @@ router.post('/', requireAuth, async (req, res) => {
     return res.status(400).json({ message: 'Selecciona una calificacion entre 1 y 5' })
   }
 
-  if (!comment) {
+  if (scope === 'APP' && !comment) {
     return res.status(400).json({ message: 'Escribe un comentario para tu reseña' })
   }
 

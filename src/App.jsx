@@ -1289,15 +1289,9 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
   const submitReview = async ({ scope, idProducto = null, draft, key }) => {
     const rating = Number(draft?.rating)
-    const comment = String(draft?.comment || '').trim()
 
     if (!rating || rating < 1 || rating > 5) {
       onNotify('Selecciona una calificacion entre 1 y 5.')
-      return
-    }
-
-    if (!comment) {
-      onNotify('Escribe un comentario para enviar tu reseña.')
       return
     }
 
@@ -1314,7 +1308,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           scope,
           id_producto: idProducto,
           rating,
-          comment,
+          comment: '',
         }),
       })
 
@@ -1756,17 +1750,6 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                   <option value="2">2 - Regular</option>
                   <option value="1">1 - Malo</option>
                 </select>
-              </label>
-              <label className="review-field">
-                <span>Comentario</span>
-                <textarea
-                  rows="3"
-                  placeholder="Cuéntanos tu experiencia con este producto"
-                  value={currentDraft.comment}
-                  onChange={(event) =>
-                    updateProductReviewDraft(product.id_producto, 'comment', event.target.value)
-                  }
-                />
               </label>
               <button
                 className="btn btn-ghost review-submit-btn"
