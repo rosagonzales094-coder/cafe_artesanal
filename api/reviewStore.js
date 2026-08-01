@@ -73,11 +73,82 @@ export async function addReview(review) {
     comment: String(review.comment || '').trim(),
     author_name: String(review.author_name || '').trim(),
     usuario: String(review.usuario || '').trim(),
+    conversation: Array.isArray(review.conversation) ? review.conversation : [],
   }
 
   reviews.push(normalized)
   await writeReviews(reviews)
   return normalized
+}
+
+export async function addReviewConversationReply(idReview, replyData) {
+  const reviews = await readReviews()
+  const targetIndex = reviews.findIndex(
+    (review) => Number(review.id_review) === Number(idReview),
+  )
+
+  if (targetIndex < 0) {
+    return null
+  }
+
+  const currentReview = reviews[targetIndex]
+  const currentConversation = Array.isArray(currentReview.conversation)
+    ? currentReview.conversation
+    : []
+  const nextReplyId = currentConversation.reduce(
+    (max, reply) => Math.max(max, Number(reply.id_reply) || 0),
+    0,
+  )
+
+  const nextReply = {
+    id_reply: nextReplyId + 1,
+    id_usuario: Number(replyData.id_usuario),
+    id_cliente: Number(replyData.id_cliente),
+    usuario: String(replyData.usuario || '').trim(),
+    author_name: String(replyData.author_name || '').trim() || 'Cliente',
+    comment: String(replyData.comment || '').trim(),
+    created_at: replyData.created_at || new Date().toISOString(),
+  }
+
+  reviews[targetIndex] = {
+    ...currentReview,
+    conversation: [...currentConversation, nextReply],
+  }
+
+  await writeReviews(reviews)
+  return reviews[targetIndex]
+}
+
+export async function deleteReviewConversationReply(idReview, idReply) {
+  const reviews = await readReviews()
+  const targetIndex = reviews.findIndex(
+    (review) => Number(review.id_review) === Number(idReview),
+  )
+
+  if (targetIndex < 0) {
+    return null
+  }
+
+  const currentReview = reviews[targetIndex]
+  const currentConversation = Array.isArray(currentReview.conversation)
+    ? currentReview.conversation
+    : []
+
+  const nextConversation = currentConversation.filter(
+    (reply) => Number(reply.id_reply) !== Number(idReply),
+  )
+
+  if (nextConversation.length === currentConversation.length) {
+    return false
+  }
+
+  reviews[targetIndex] = {
+    ...currentReview,
+    conversation: nextConversation,
+  }
+
+  await writeReviews(reviews)
+  return reviews[targetIndex]
 }
 
 export async function updateReviewReply(idReview, replyData) {

@@ -356,6 +356,7 @@ function RatingPicker({ value, onChange, label }) {
 function ReviewThreadList({
   reviews,
   emptyText,
+  isAuthenticated,
   isAdmin,
   currentUserId,
   currentClientId,
@@ -364,6 +365,12 @@ function ReviewThreadList({
   onReplyDraftChange,
   onSubmitReply,
   replyingKey,
+  conversationDrafts,
+  onConversationDraftChange,
+  onSubmitConversationReply,
+  conversationSavingKey,
+  onDeleteConversationReply,
+  conversationDeletingKey,
   onDeleteReview,
   deletingKey,
   removingReviewId,
@@ -381,6 +388,11 @@ function ReviewThreadList({
         const replyValue = replyDrafts[reviewId] ?? review.reply ?? ''
         const hasReply = String(review.reply || '').trim().length > 0
         const replyKey = `reply-${reviewId}`
+        const conversationKey = `conversation-${reviewId}`
+        const conversationValue = conversationDrafts[reviewId] ?? ''
+        const conversationItems = Array.isArray(review.conversation)
+          ? review.conversation
+          : []
         const isOwnerByUser =
           reviewUserId > 0 && reviewUserId === Number(currentUserId || 0)
         const isOwnerByClient =
@@ -419,6 +431,81 @@ function ReviewThreadList({
             </div>
             <ReviewStars rating={review.rating} />
             {review.comment ? <p>{review.comment}</p> : null}
+            {conversationItems.length > 0 ? (
+              <div className="review-conversation-box">
+                <p className="review-reply-label">Conversacion</p>
+                <div className="review-conversation-list">
+                  {conversationItems.map((item) => (
+                    <article className="review-conversation-item" key={`${reviewId}-${item.id_reply}-${item.created_at}`}>
+                      <div className="review-conversation-head">
+                        <strong>{item.author_name || item.usuario || 'Cliente'}</strong>
+                        <div className="review-conversation-actions">
+                          <span>{formatReviewDate(item.created_at)}</span>
+                          {(() => {
+                            const itemUserId = Number(item.id_usuario)
+                            const itemClientId = Number(item.id_cliente)
+                            const itemUsername = String(item.usuario || '').trim().toLowerCase()
+                            const isItemOwnerByUser =
+                              itemUserId > 0 && itemUserId === Number(currentUserId || 0)
+                            const isItemOwnerByClient =
+                              itemClientId > 0 && itemClientId === Number(currentClientId || 0)
+                            const isItemOwnerByUsername =
+                              Boolean(itemUsername) &&
+                              Boolean(currentUsernameNormalized) &&
+                              itemUsername === currentUsernameNormalized
+                            const canDeleteConversationReply =
+                              isAdmin || isItemOwnerByUser || isItemOwnerByClient || isItemOwnerByUsername
+                            const itemDeleteKey = `conversation-delete-${reviewId}-${Number(item.id_reply) || 0}`
+
+                            if (!canDeleteConversationReply) {
+                              return null
+                            }
+
+                            return (
+                              <button
+                                className="review-conversation-delete-btn"
+                                type="button"
+                                onClick={() =>
+                                  onDeleteConversationReply(reviewId, Number(item.id_reply) || 0)
+                                }
+                                disabled={conversationDeletingKey === itemDeleteKey}
+                                aria-label="Eliminar respuesta"
+                                title="Eliminar respuesta"
+                              >
+                                <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                                  <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 12h12l1-14H5l1 14Z" />
+                                </svg>
+                              </button>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                      <p className="review-conversation-text">{item.comment}</p>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {isAuthenticated ? (
+              <div className="review-conversation-form">
+                <textarea
+                  rows="2"
+                  placeholder="Responde este comentario para iniciar una conversacion"
+                  value={conversationValue}
+                  onChange={(event) =>
+                    onConversationDraftChange(reviewId, event.target.value)
+                  }
+                />
+                <button
+                  className="btn btn-ghost review-submit-btn"
+                  type="button"
+                  onClick={() => onSubmitConversationReply(reviewId, conversationValue)}
+                  disabled={conversationSavingKey === conversationKey}
+                >
+                  {conversationSavingKey === conversationKey ? 'Enviando...' : 'Responder'}
+                </button>
+              </div>
+            ) : null}
             {hasReply ? (
               <div className="review-reply-box">
                 <p className="review-reply-label">Respuesta</p>
@@ -503,6 +590,12 @@ function PlatformReviewSection({
   onReplyDraftChange,
   onSubmitReply,
   replyingKey,
+  conversationDrafts,
+  onConversationDraftChange,
+  onSubmitConversationReply,
+  conversationSavingKey,
+  onDeleteConversationReply,
+  conversationDeletingKey,
   onDeleteReview,
   deletingKey,
   removingReviewId,
@@ -565,10 +658,17 @@ function PlatformReviewSection({
         currentUserId={currentUserId}
         currentClientId={currentClientId}
         currentUsername={currentUsername}
+        isAuthenticated={isAuthenticated}
         replyDrafts={replyDrafts}
         onReplyDraftChange={onReplyDraftChange}
         onSubmitReply={onSubmitReply}
         replyingKey={replyingKey}
+        conversationDrafts={conversationDrafts}
+        onConversationDraftChange={onConversationDraftChange}
+        onSubmitConversationReply={onSubmitConversationReply}
+        conversationSavingKey={conversationSavingKey}
+        onDeleteConversationReply={onDeleteConversationReply}
+        conversationDeletingKey={conversationDeletingKey}
         onDeleteReview={onDeleteReview}
         deletingKey={deletingKey}
         removingReviewId={removingReviewId}
@@ -675,6 +775,12 @@ function Home({
   onReplyDraftChange,
   onSubmitReply,
   replyingKey,
+  conversationDrafts,
+  onConversationDraftChange,
+  onSubmitConversationReply,
+  conversationSavingKey,
+  onDeleteConversationReply,
+  conversationDeletingKey,
   onDeleteReview,
   deletingKey,
   removingReviewId,
@@ -821,6 +927,12 @@ function Home({
         onReplyDraftChange={onReplyDraftChange}
         onSubmitReply={onSubmitReply}
         replyingKey={replyingKey}
+        conversationDrafts={conversationDrafts}
+        onConversationDraftChange={onConversationDraftChange}
+        onSubmitConversationReply={onSubmitConversationReply}
+        conversationSavingKey={conversationSavingKey}
+        onDeleteConversationReply={onDeleteConversationReply}
+        conversationDeletingKey={conversationDeletingKey}
         onDeleteReview={onDeleteReview}
         deletingKey={deletingKey}
         removingReviewId={removingReviewId}
@@ -1010,6 +1122,9 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [reviewSavingKey, setReviewSavingKey] = useState('')
   const [reviewReplyDrafts, setReviewReplyDrafts] = useState({})
   const [reviewReplySavingKey, setReviewReplySavingKey] = useState('')
+  const [conversationDrafts, setConversationDrafts] = useState({})
+  const [conversationSavingKey, setConversationSavingKey] = useState('')
+  const [conversationDeletingKey, setConversationDeletingKey] = useState('')
   const [reviewDeleteSavingKey, setReviewDeleteSavingKey] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
@@ -1558,6 +1673,74 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
   }
 
+  const submitConversationReply = async (idReview, comment) => {
+    const commentText = String(comment || '').trim()
+
+    if (!commentText) {
+      onNotify('Escribe una respuesta para comentar esta reseña.')
+      return
+    }
+
+    const key = `conversation-${idReview}`
+    setConversationSavingKey(key)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews/${idReview}/conversation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ comment: commentText }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo enviar la respuesta')
+      }
+
+      onNotify(data.message || 'Respuesta enviada correctamente.')
+      setConversationDrafts((prev) => ({ ...prev, [idReview]: '' }))
+      await loadReviews()
+    } catch (requestError) {
+      onNotify(requestError.message)
+    } finally {
+      setConversationSavingKey('')
+    }
+  }
+
+  const deleteConversationReply = async (idReview, idReply) => {
+    if (!idReview || !idReply) return
+
+    const confirmed = window.confirm('¿Eliminar esta respuesta de la conversacion?')
+    if (!confirmed) return
+
+    const key = `conversation-delete-${idReview}-${idReply}`
+    setConversationDeletingKey(key)
+
+    try {
+      const response = await fetch(
+        `${API_URL}/reviews/${idReview}/conversation/${idReply}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo eliminar la respuesta')
+      }
+
+      onNotify(data.message || 'Respuesta eliminada correctamente.')
+      await loadReviews()
+    } catch (requestError) {
+      onNotify(requestError.message)
+    } finally {
+      setConversationDeletingKey('')
+    }
+  }
+
   const deleteReview = async (idReview) => {
     const confirmed = window.confirm('¿Eliminar esta reseña de forma permanente?')
     if (!confirmed) return
@@ -2016,6 +2199,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               <ReviewThreadList
                 reviews={productReviews}
                 emptyText="Aun no hay reseñas para este producto."
+                isAuthenticated={Boolean(token)}
                 isAdmin={isAdmin}
                 currentUserId={user?.id_usuario}
                 currentClientId={user?.id_cliente}
@@ -2026,6 +2210,14 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 }
                 onSubmitReply={submitReviewReply}
                 replyingKey={reviewReplySavingKey}
+                conversationDrafts={conversationDrafts}
+                onConversationDraftChange={(reviewId, value) =>
+                  setConversationDrafts((prev) => ({ ...prev, [reviewId]: value }))
+                }
+                onSubmitConversationReply={submitConversationReply}
+                conversationSavingKey={conversationSavingKey}
+                onDeleteConversationReply={deleteConversationReply}
+                conversationDeletingKey={conversationDeletingKey}
                 onDeleteReview={deleteReview}
                 deletingKey={reviewDeleteSavingKey}
               />
@@ -3066,6 +3258,9 @@ function App() {
   const [appReviewSaving, setAppReviewSaving] = useState(false)
   const [appReviewReplyDrafts, setAppReviewReplyDrafts] = useState({})
   const [appReviewReplySavingKey, setAppReviewReplySavingKey] = useState('')
+  const [appConversationDrafts, setAppConversationDrafts] = useState({})
+  const [appConversationSavingKey, setAppConversationSavingKey] = useState('')
+  const [appConversationDeletingKey, setAppConversationDeletingKey] = useState('')
   const [appReviewDeleteSavingKey, setAppReviewDeleteSavingKey] = useState('')
   const [appReviewRemovingId, setAppReviewRemovingId] = useState(0)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
@@ -3482,6 +3677,74 @@ function App() {
     }
   }
 
+  const submitAppConversationReply = async (idReview, comment) => {
+    const commentText = String(comment || '').trim()
+
+    if (!commentText) {
+      showToast('Escribe una respuesta para continuar la conversacion.')
+      return
+    }
+
+    const key = `conversation-${idReview}`
+    setAppConversationSavingKey(key)
+
+    try {
+      const response = await fetch(`${API_URL}/reviews/${idReview}/conversation`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ comment: commentText }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo enviar la respuesta')
+      }
+
+      showToast(data.message || 'Respuesta enviada correctamente.')
+      setAppConversationDrafts((prev) => ({ ...prev, [idReview]: '' }))
+      await refreshAppReviews()
+    } catch (requestError) {
+      showToast(requestError.message)
+    } finally {
+      setAppConversationSavingKey('')
+    }
+  }
+
+  const deleteAppConversationReply = async (idReview, idReply) => {
+    if (!idReview || !idReply) return
+
+    const confirmed = window.confirm('¿Eliminar esta respuesta de la conversacion?')
+    if (!confirmed) return
+
+    const key = `conversation-delete-${idReview}-${idReply}`
+    setAppConversationDeletingKey(key)
+
+    try {
+      const response = await fetch(
+        `${API_URL}/reviews/${idReview}/conversation/${idReply}`,
+        {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      )
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo eliminar la respuesta')
+      }
+
+      showToast(data.message || 'Respuesta eliminada correctamente.')
+      await refreshAppReviews()
+    } catch (requestError) {
+      showToast(requestError.message)
+    } finally {
+      setAppConversationDeletingKey('')
+    }
+  }
+
   const deleteAppReview = async (idReview) => {
     const confirmed = window.confirm('¿Eliminar esta reseña de forma permanente?')
     if (!confirmed) return
@@ -3638,6 +3901,14 @@ function App() {
                 }
                 onSubmitReply={submitAppReviewReply}
                 replyingKey={appReviewReplySavingKey}
+                conversationDrafts={appConversationDrafts}
+                onConversationDraftChange={(reviewId, value) =>
+                  setAppConversationDrafts((prev) => ({ ...prev, [reviewId]: value }))
+                }
+                onSubmitConversationReply={submitAppConversationReply}
+                conversationSavingKey={appConversationSavingKey}
+                onDeleteConversationReply={deleteAppConversationReply}
+                conversationDeletingKey={appConversationDeletingKey}
                 onDeleteReview={deleteAppReview}
                 deletingKey={appReviewDeleteSavingKey}
                 removingReviewId={appReviewRemovingId}

@@ -1010,6 +1010,98 @@ input:focus {
   background: rgba(255, 244, 226, 0.06);
 }
 
+.review-conversation-box {
+  margin-top: 0.7rem;
+  padding: 0.7rem 0.78rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 219, 160, 0.16);
+  background: rgba(255, 244, 226, 0.04);
+}
+
+.review-conversation-list {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.review-conversation-item {
+  border-radius: 10px;
+  border: 1px solid rgba(255, 222, 173, 0.16);
+  background: rgba(255, 252, 244, 0.04);
+  padding: 0.48rem 0.56rem;
+}
+
+.review-conversation-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.4rem;
+}
+
+.review-conversation-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.review-conversation-head strong {
+  font-size: 0.78rem;
+  color: #ffe7bc;
+}
+
+.review-conversation-head span {
+  font-size: 0.72rem;
+  color: #d4b287;
+}
+
+.review-conversation-delete-btn {
+  width: 1.45rem;
+  height: 1.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 149, 149, 0.32);
+  background: rgba(146, 35, 35, 0.16);
+  color: #ffb7b2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 140ms ease, background-color 140ms ease, border-color 140ms ease;
+}
+
+.review-conversation-delete-btn svg {
+  width: 0.72rem;
+  height: 0.72rem;
+  fill: currentColor;
+}
+
+.review-conversation-delete-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(146, 35, 35, 0.3);
+  border-color: rgba(255, 149, 149, 0.55);
+}
+
+.review-conversation-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.review-conversation-text {
+  margin: 0.28rem 0 0;
+  color: #f6e5c5;
+  font-size: 0.82rem;
+}
+
+.review-conversation-form {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.review-conversation-form textarea {
+  min-height: 62px;
+  resize: vertical;
+}
+
 .review-reply-label {
   margin: 0 0 0.28rem;
   color: #ffd47f;

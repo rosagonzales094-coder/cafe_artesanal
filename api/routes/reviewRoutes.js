@@ -3,6 +3,8 @@ import pool from '../db.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import {
   addReview,
+  addReviewConversationReply,
+  deleteReviewConversationReply,
   deleteReviewById,
   getAllReviews,
   updateReviewReply,
@@ -31,6 +33,22 @@ function isReviewOwner(review, user) {
   return byUserId || byClientId || byUsername
 }
 
+function isConversationReplyOwner(reply, user) {
+  const replyUserId = Number(reply?.id_usuario)
+  const replyClientId = Number(reply?.id_cliente)
+  const replyUsername = String(reply?.usuario || '').trim().toLowerCase()
+
+  const userId = Number(user?.id_usuario)
+  const clientId = Number(user?.id_cliente)
+  const username = String(user?.usuario || '').trim().toLowerCase()
+
+  const byUserId = replyUserId > 0 && userId > 0 && replyUserId === userId
+  const byClientId = replyClientId > 0 && clientId > 0 && replyClientId === clientId
+  const byUsername = Boolean(replyUsername) && Boolean(username) && replyUsername === username
+
+  return byUserId || byClientId || byUsername
+}
+
 function normalizeScope(value) {
   return String(value || '').trim().toUpperCase()
 }
@@ -46,6 +64,10 @@ function normalizeRating(value) {
 
 function normalizeReply(reply) {
   return String(reply || '').trim()
+}
+
+function normalizeConversationComment(comment) {
+  return String(comment || '').trim()
 }
 
 async function resolveAuthor(connection, reqUser) {
@@ -234,6 +256,103 @@ router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
     })
   } catch (error) {
     return res.status(500).json({ message: 'Error al guardar la respuesta', error })
+  }
+})
+
+router.post('/:idReview/conversation', requireAuth, async (req, res) => {
+  const idReview = Number(req.params.idReview)
+  const comment = normalizeConversationComment(req.body?.comment)
+
+  if (!idReview) {
+    return res.status(400).json({ message: 'ID de reseña invalido' })
+  }
+
+  if (!comment) {
+    return res.status(400).json({ message: 'Escribe una respuesta para continuar la conversacion' })
+  }
+
+  let connection
+
+  try {
+    connection = await pool.getConnection()
+    const author = await resolveAuthor(connection, req.user)
+
+    const updatedReview = await addReviewConversationReply(idReview, {
+      id_usuario: req.user.id_usuario,
+      id_cliente: req.user.id_cliente,
+      usuario: req.user.usuario,
+      author_name: author.author_name,
+      comment,
+      created_at: new Date().toISOString(),
+    })
+
+    if (!updatedReview) {
+      return res.status(404).json({ message: 'Reseña no encontrada' })
+    }
+
+    return res.json({
+      message: 'Respuesta enviada correctamente',
+      review: updatedReview,
+    })
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al responder la reseña', error })
+  } finally {
+    if (connection) {
+      connection.release()
+    }
+  }
+})
+
+router.delete('/:idReview/conversation/:idReply', requireAuth, async (req, res) => {
+  const idReview = Number(req.params.idReview)
+  const idReply = Number(req.params.idReply)
+
+  if (!idReview || !idReply) {
+    return res.status(400).json({ message: 'IDs de conversacion invalidos' })
+  }
+
+  try {
+    const reviews = await getAllReviews()
+    const targetReview = reviews.find(
+      (review) => Number(review.id_review) === Number(idReview),
+    )
+
+    if (!targetReview) {
+      return res.status(404).json({ message: 'Reseña no encontrada' })
+    }
+
+    const conversation = Array.isArray(targetReview.conversation)
+      ? targetReview.conversation
+      : []
+    const targetReply = conversation.find(
+      (reply) => Number(reply.id_reply) === Number(idReply),
+    )
+
+    if (!targetReply) {
+      return res.status(404).json({ message: 'Respuesta de conversacion no encontrada' })
+    }
+
+    const isOwner = isConversationReplyOwner(targetReply, req.user)
+    if (!isAdminUser(req.user) && !isOwner) {
+      return res.status(403).json({ message: 'No tienes permisos para eliminar esta respuesta' })
+    }
+
+    const updatedReview = await deleteReviewConversationReply(idReview, idReply)
+
+    if (updatedReview === false) {
+      return res.status(404).json({ message: 'Respuesta de conversacion no encontrada' })
+    }
+
+    if (!updatedReview) {
+      return res.status(404).json({ message: 'Reseña no encontrada' })
+    }
+
+    return res.json({
+      message: 'Respuesta eliminada correctamente',
+      review: updatedReview,
+    })
+  } catch (error) {
+    return res.status(500).json({ message: 'Error al eliminar la respuesta', error })
   }
 })
 
