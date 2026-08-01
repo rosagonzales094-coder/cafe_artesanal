@@ -17,6 +17,7 @@ const __dirname = path.dirname(__filename)
 const projectRoot = path.resolve(__dirname, '..')
 const distDir = path.resolve(projectRoot, 'dist')
 const indexFile = path.resolve(distDir, 'index.html')
+const catalogPdfFile = path.resolve(projectRoot, 'public', 'imagenes', 'Catalogo_Coffe_Drink.pdf')
 
 app.use(
   cors({
@@ -27,6 +28,14 @@ app.use(express.json())
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'Cafe Artesanal API' })
+})
+
+app.get('/api/catalog/pdf', (req, res) => {
+  if (!fs.existsSync(catalogPdfFile)) {
+    return res.status(404).json({ message: 'Catalogo PDF no encontrado' })
+  }
+
+  return res.download(catalogPdfFile, 'Catalogo_Coffe_Drink.pdf')
 })
 
 app.use('/api/auth', authRoutes)

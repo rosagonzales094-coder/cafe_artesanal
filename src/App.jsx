@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import { jsPDF } from 'jspdf'
 import './App.css'
 
 function resolveApiUrl() {
@@ -23,6 +22,7 @@ function resolveApiUrl() {
 
 const API_URL = resolveApiUrl()
 const BRAND_LOGO_URL = '/imagenes/logo.png'
+const CATALOG_PDF_URL = `${API_URL}/catalog/pdf`
 const ADMIN_WHATSAPP_PHONE = '593988062935'
 
 const PRODUCT_IMAGE_BY_CODE = {
@@ -301,46 +301,6 @@ function WhatsAppButton() {
 }
 
 function Home({ onPreviewImage }) {
-  const downloadCatalogPdf = () => {
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' })
-
-    doc.setFontSize(18)
-    doc.text('Catalogo Cafe Artesanal Zaruma', 15, 18)
-
-    doc.setFontSize(11)
-    doc.text('Origen: Zaruma, El Oro - Ecuador', 15, 27)
-    doc.text('Contacto WhatsApp: 0988062935', 15, 33)
-
-    doc.setFontSize(13)
-    doc.text('Ediciones especiales', 15, 45)
-
-    let y = 52
-    for (const coffee of SPECIAL_COFFEES) {
-      doc.setFontSize(11)
-      doc.text(`${coffee.nombre} (${coffee.codigo})`, 15, y)
-      y += 6
-      doc.text(`Presentacion: ${coffee.presentacion}`, 18, y)
-      y += 6
-      doc.text(`Precio: ${currency(Number(coffee.precio))}`, 18, y)
-      y += 8
-    }
-
-    doc.setFontSize(13)
-    doc.text('Linea artesanal y accesorios', 15, y)
-    y += 8
-    doc.setFontSize(11)
-    doc.text('- Cafe de origen Zaruma en varias presentaciones.', 15, y)
-    y += 6
-    doc.text('- Accesorios: compresa termica y cafetera prensa.', 15, y)
-    y += 6
-    doc.text('- Pagos por deposito bancario y validacion por WhatsApp.', 15, y)
-
-    doc.setFontSize(10)
-    doc.text('Version digital generada desde la tienda web.', 15, 285)
-
-    doc.save('catalogo-cafe-artesanal.pdf')
-  }
-
   return (
     <>
       <section className="hero-home" id="sobre-nosotros">
@@ -357,9 +317,15 @@ function Home({ onPreviewImage }) {
             <span>Ediciones especiales y perfil premium</span>
           </div>
           <div className="hero-cta">
-            <button className="btn btn-solid" type="button" onClick={downloadCatalogPdf}>
+            <a
+              className="btn btn-solid"
+              href={CATALOG_PDF_URL}
+              target="_blank"
+              rel="noreferrer"
+              download="Catalogo_Coffe_Drink.pdf"
+            >
               Descargar catalogo PDF
-            </button>
+            </a>
             <Link className="btn btn-ghost" to="/login">
               Iniciar sesion
             </Link>
@@ -2843,9 +2809,7 @@ function App() {
             <button className="btn btn-ghost" onClick={logout} type="button">
               Salir ({user.usuario})
             </button>
-          ) : (
-            <span className="user-pill">Invitado</span>
-          )}
+          ) : null}
         </div>
       </header>
 
