@@ -15,6 +15,22 @@ function isAdminUser(user) {
   return String(user?.rol || '').trim().toLowerCase() === 'administrador'
 }
 
+function isReviewOwner(review, user) {
+  const reviewUserId = Number(review?.id_usuario)
+  const reviewClientId = Number(review?.id_cliente)
+  const reviewUsername = String(review?.usuario || '').trim().toLowerCase()
+
+  const userId = Number(user?.id_usuario)
+  const clientId = Number(user?.id_cliente)
+  const username = String(user?.usuario || '').trim().toLowerCase()
+
+  const byUserId = reviewUserId > 0 && userId > 0 && reviewUserId === userId
+  const byClientId = reviewClientId > 0 && clientId > 0 && reviewClientId === clientId
+  const byUsername = Boolean(reviewUsername) && Boolean(username) && reviewUsername === username
+
+  return byUserId || byClientId || byUsername
+}
+
 function normalizeScope(value) {
   return String(value || '').trim().toUpperCase()
 }
@@ -238,7 +254,7 @@ router.delete('/:idReview', requireAuth, async (req, res) => {
       return res.status(404).json({ message: 'Reseña no encontrada' })
     }
 
-    const isOwner = Number(targetReview.id_usuario) === Number(req.user.id_usuario)
+    const isOwner = isReviewOwner(targetReview, req.user)
     if (!isAdminUser(req.user) && !isOwner) {
       return res.status(403).json({ message: 'No tienes permisos para eliminar esta reseña' })
     }

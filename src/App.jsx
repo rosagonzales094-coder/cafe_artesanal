@@ -336,6 +336,8 @@ function ReviewThreadList({
   emptyText,
   isAdmin,
   currentUserId,
+  currentClientId,
+  currentUsername,
   replyDrafts,
   onReplyDraftChange,
   onSubmitReply,
@@ -348,10 +350,23 @@ function ReviewThreadList({
       {reviews.map((review) => {
         const reviewId = Number(review.id_review)
         const reviewUserId = Number(review.id_usuario)
+        const reviewClientId = Number(review.id_cliente)
+        const reviewUsername = String(review.usuario || '').trim().toLowerCase()
+        const currentUsernameNormalized = String(currentUsername || '')
+          .trim()
+          .toLowerCase()
         const replyValue = replyDrafts[reviewId] ?? review.reply ?? ''
         const hasReply = String(review.reply || '').trim().length > 0
         const replyKey = `reply-${reviewId}`
-        const isOwner = reviewUserId > 0 && reviewUserId === Number(currentUserId || 0)
+        const isOwnerByUser =
+          reviewUserId > 0 && reviewUserId === Number(currentUserId || 0)
+        const isOwnerByClient =
+          reviewClientId > 0 && reviewClientId === Number(currentClientId || 0)
+        const isOwnerByUsername =
+          Boolean(reviewUsername) &&
+          Boolean(currentUsernameNormalized) &&
+          reviewUsername === currentUsernameNormalized
+        const isOwner = isOwnerByUser || isOwnerByClient || isOwnerByUsername
         const canDelete = isAdmin || isOwner
 
         return (
@@ -450,6 +465,8 @@ function PlatformReviewSection({
   isAuthenticated,
   isAdmin,
   currentUserId,
+  currentClientId,
+  currentUsername,
   reviews,
   summary,
   draft,
@@ -519,6 +536,8 @@ function PlatformReviewSection({
         emptyText="Sé el primero en compartir tu experiencia y ayuda a otros amantes del café a descubrir nuestros productos."
         isAdmin={isAdmin}
         currentUserId={currentUserId}
+        currentClientId={currentClientId}
+        currentUsername={currentUsername}
         replyDrafts={replyDrafts}
         onReplyDraftChange={onReplyDraftChange}
         onSubmitReply={onSubmitReply}
@@ -616,6 +635,8 @@ function Home({
   isAuthenticated,
   isAdmin,
   currentUserId,
+  currentClientId,
+  currentUsername,
   appReviews,
   appReviewSummary,
   appReviewDraft,
@@ -757,6 +778,8 @@ function Home({
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
         currentUserId={currentUserId}
+        currentClientId={currentClientId}
+        currentUsername={currentUsername}
         reviews={appReviews}
         summary={appReviewSummary}
         draft={appReviewDraft}
@@ -1959,6 +1982,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 emptyText="Aun no hay reseñas para este producto."
                 isAdmin={isAdmin}
                 currentUserId={user?.id_usuario}
+                currentClientId={user?.id_cliente}
+                currentUsername={user?.usuario}
                 replyDrafts={reviewReplyDrafts}
                 onReplyDraftChange={(reviewId, value) =>
                   setReviewReplyDrafts((prev) => ({ ...prev, [reviewId]: value }))
@@ -3551,6 +3576,8 @@ function App() {
                 isAuthenticated={isAuthenticated}
                 isAdmin={isAdmin}
                 currentUserId={user?.id_usuario}
+                currentClientId={user?.id_cliente}
+                currentUsername={user?.usuario}
                 appReviews={appReviews}
                 appReviewSummary={appReviewSummary}
                 appReviewDraft={appReviewDraft}
