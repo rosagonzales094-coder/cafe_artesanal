@@ -928,6 +928,14 @@ input:focus {
   border-radius: 14px;
   border: 1px solid rgba(255, 218, 161, 0.18);
   background: rgba(23, 12, 7, 0.28);
+  transition: opacity 220ms ease, transform 220ms ease, filter 220ms ease;
+}
+
+.review-item.is-removing {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.985);
+  filter: blur(0.8px);
+  pointer-events: none;
 }
 
 .review-item-head {

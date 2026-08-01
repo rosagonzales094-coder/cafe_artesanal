@@ -344,6 +344,7 @@ function ReviewThreadList({
   replyingKey,
   onDeleteReview,
   deletingKey,
+  removingReviewId,
 }) {
   return (
     <div className="review-list review-list-wide">
@@ -370,7 +371,10 @@ function ReviewThreadList({
         const canDelete = isAdmin || isOwner
 
         return (
-          <article className="review-item" key={review.id_review}>
+          <article
+            className={`review-item ${removingReviewId === reviewId ? 'is-removing' : ''}`}
+            key={review.id_review}
+          >
             <div className="review-item-head">
               <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
               <div className="review-item-head-actions">
@@ -380,7 +384,7 @@ function ReviewThreadList({
                     className="review-delete-icon-btn"
                     type="button"
                     onClick={() => onDeleteReview(reviewId)}
-                    disabled={deletingKey === replyKey}
+                    disabled={deletingKey === replyKey || removingReviewId === reviewId}
                     aria-label="Eliminar reseña"
                     title="Eliminar reseña"
                   >
@@ -479,6 +483,7 @@ function PlatformReviewSection({
   replyingKey,
   onDeleteReview,
   deletingKey,
+  removingReviewId,
 }) {
   return (
     <section className="card app-review-card home-review-section">
@@ -544,6 +549,7 @@ function PlatformReviewSection({
         replyingKey={replyingKey}
         onDeleteReview={onDeleteReview}
         deletingKey={deletingKey}
+        removingReviewId={removingReviewId}
       />
     </section>
   )
@@ -647,6 +653,9 @@ function Home({
   onReplyDraftChange,
   onSubmitReply,
   replyingKey,
+  onDeleteReview,
+  deletingKey,
+  removingReviewId,
 }) {
   return (
     <>
@@ -790,6 +799,9 @@ function Home({
         onReplyDraftChange={onReplyDraftChange}
         onSubmitReply={onSubmitReply}
         replyingKey={replyingKey}
+        onDeleteReview={onDeleteReview}
+        deletingKey={deletingKey}
+        removingReviewId={removingReviewId}
       />
     </>
   )
@@ -3033,6 +3045,7 @@ function App() {
   const [appReviewReplyDrafts, setAppReviewReplyDrafts] = useState({})
   const [appReviewReplySavingKey, setAppReviewReplySavingKey] = useState('')
   const [appReviewDeleteSavingKey, setAppReviewDeleteSavingKey] = useState('')
+  const [appReviewRemovingId, setAppReviewRemovingId] = useState(0)
   const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
   const [hasNewRequestAlert, setHasNewRequestAlert] = useState(false)
   const [myOrdersPendingCount, setMyOrdersPendingCount] = useState(0)
@@ -3449,6 +3462,7 @@ function App() {
 
     const deleteKey = `reply-${idReview}`
     setAppReviewDeleteSavingKey(deleteKey)
+    setAppReviewRemovingId(Number(idReview) || 0)
 
     try {
       const response = await fetch(`${API_URL}/reviews/${idReview}`, {
@@ -3464,11 +3478,15 @@ function App() {
       const successMessage = data.message || 'Reseña eliminada correctamente.'
       showToast(successMessage)
       window.alert(successMessage)
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 260)
+      })
       await refreshAppReviews()
     } catch (requestError) {
       showToast(requestError.message)
     } finally {
       setAppReviewDeleteSavingKey('')
+      setAppReviewRemovingId(0)
     }
   }
 
@@ -3596,6 +3614,7 @@ function App() {
                 replyingKey={appReviewReplySavingKey}
                 onDeleteReview={deleteAppReview}
                 deletingKey={appReviewDeleteSavingKey}
+                removingReviewId={appReviewRemovingId}
               />
             }
           />
