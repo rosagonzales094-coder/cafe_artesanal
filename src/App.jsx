@@ -222,6 +222,7 @@ const CATEGORY_ACTION_EDIT = '__CATEGORY_ACTION_EDIT__'
 const CATEGORY_ACTION_DELETE = '__CATEGORY_ACTION_DELETE__'
 const MAX_COFFEE_UNITS_PER_ORDER = 6
 const CART_STORAGE_KEY = 'cafe_artesanal_cart_v1'
+const APP_REVIEW_STORAGE_KEY = 'cafe_artesanal_app_reviews_v1'
 const CART_TTL_MS = 2 * 24 * 60 * 60 * 1000
 const REVIEW_SCOPE_PRODUCT = 'PRODUCT'
 const REVIEW_SCOPE_APP = 'APP'
@@ -263,6 +264,27 @@ function saveCartToStorage(items) {
       items,
     }),
   )
+}
+
+function loadAppReviewsFromStorage() {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(APP_REVIEW_STORAGE_KEY)
+    if (!raw) return []
+
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function saveAppReviewsToStorage(reviews) {
+  if (typeof window === 'undefined') return
+
+  const safeReviews = Array.isArray(reviews) ? reviews : []
+  window.localStorage.setItem(APP_REVIEW_STORAGE_KEY, JSON.stringify(safeReviews))
 }
 
 function isCoffeeForOrderLimit(product) {
@@ -3039,7 +3061,7 @@ function App() {
   const [cartItems, setCartItems] = useState(() => loadCartFromStorage())
   const [cartToast, setCartToast] = useState('')
   const [previewImage, setPreviewImage] = useState(null)
-  const [appReviews, setAppReviews] = useState([])
+  const [appReviews, setAppReviews] = useState(() => loadAppReviewsFromStorage())
   const [appReviewDraft, setAppReviewDraft] = useState({ rating: '5', comment: '' })
   const [appReviewSaving, setAppReviewSaving] = useState(false)
   const [appReviewReplyDrafts, setAppReviewReplyDrafts] = useState({})
@@ -3076,7 +3098,7 @@ function App() {
 
       setAppReviews(platformReviews)
     } catch {
-      setAppReviews([])
+      // Keep the last known reviews visible when a temporary API error occurs.
     }
   }, [])
 
@@ -3097,6 +3119,10 @@ function App() {
   useEffect(() => {
     saveCartToStorage(cartItems)
   }, [cartItems])
+
+  useEffect(() => {
+    saveAppReviewsToStorage(appReviews)
+  }, [appReviews])
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
