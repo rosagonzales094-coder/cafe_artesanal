@@ -449,24 +449,6 @@ function PlatformReviewSection({
         nuestro servicio. Tu opinión nos ayuda a seguir ofreciendo una experiencia
         excepcional.
       </p>
-      <div className="review-summary-line review-summary-app">
-        <ReviewStars rating={summary.average} />
-        <span>
-          {summary.count > 0
-            ? `${summary.average}/5 · ${summary.count} reseñas`
-            : 'Aún no hay reseñas'}
-        </span>
-      </div>
-        <ReviewThreadList
-          reviews={reviews}
-          emptyText="Sé el primero en compartir tu experiencia y ayuda a otros amantes del café a descubrir nuestros productos."
-          isAdmin={isAdmin}
-          replyDrafts={replyDrafts}
-          onReplyDraftChange={onReplyDraftChange}
-          onSubmitReply={onSubmitReply}
-          replyingKey={replyingKey}
-        />
-
       {isAuthenticated ? (
         <div className="product-review-panel">
           <RatingPicker
@@ -498,9 +480,18 @@ function PlatformReviewSection({
         </p>
       )}
 
+      <div className="review-summary-line review-summary-app">
+        <ReviewStars rating={summary.average} />
+        <span>
+          {summary.count > 0
+            ? `${summary.average}/5 · ${summary.count} reseñas`
+            : 'Aún no hay reseñas'}
+        </span>
+      </div>
+
       <ReviewThreadList
         reviews={reviews}
-        emptyText="Todavia no hay comentarios generales."
+        emptyText="Sé el primero en compartir tu experiencia y ayuda a otros amantes del café a descubrir nuestros productos."
         isAdmin={isAdmin}
         replyDrafts={replyDrafts}
         onReplyDraftChange={onReplyDraftChange}
