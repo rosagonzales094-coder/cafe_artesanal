@@ -940,9 +940,52 @@ input:focus {
   font-size: 0.82rem;
 }
 
+.review-item-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
 .review-item-head span {
   color: #cfae82;
   font-size: 0.76rem;
+}
+
+.review-delete-icon-btn {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 149, 149, 0.35);
+  background: rgba(146, 35, 35, 0.2);
+  color: #ffb7b2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+
+.review-delete-icon-btn svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  fill: currentColor;
+}
+
+.review-delete-icon-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(146, 35, 35, 0.34);
+  border-color: rgba(255, 149, 149, 0.55);
+}
+
+.review-delete-icon-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.review-delete-icon-btn:focus-visible {
+  outline: 2px solid rgba(255, 149, 149, 0.8);
+  outline-offset: 2px;
 }
 
 .review-item p {

@@ -11,6 +11,10 @@ import {
 const router = express.Router()
 const REVIEW_SCOPES = new Set(['PRODUCT', 'APP'])
 
+function isAdminUser(user) {
+  return String(user?.rol || '').trim().toLowerCase() === 'administrador'
+}
+
 function normalizeScope(value) {
   return String(value || '').trim().toUpperCase()
 }
@@ -217,7 +221,7 @@ router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
-router.delete('/:idReview', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/:idReview', requireAuth, async (req, res) => {
   const idReview = Number(req.params.idReview)
 
   if (!idReview) {
@@ -225,6 +229,20 @@ router.delete('/:idReview', requireAuth, requireAdmin, async (req, res) => {
   }
 
   try {
+    const reviews = await getAllReviews()
+    const targetReview = reviews.find(
+      (review) => Number(review.id_review) === Number(idReview),
+    )
+
+    if (!targetReview) {
+      return res.status(404).json({ message: 'Reseña no encontrada' })
+    }
+
+    const isOwner = Number(targetReview.id_usuario) === Number(req.user.id_usuario)
+    if (!isAdminUser(req.user) && !isOwner) {
+      return res.status(403).json({ message: 'No tienes permisos para eliminar esta reseña' })
+    }
+
     const deleted = await deleteReviewById(idReview)
 
     if (!deleted) {

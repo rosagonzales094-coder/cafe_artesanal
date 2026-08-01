@@ -335,6 +335,7 @@ function ReviewThreadList({
   reviews,
   emptyText,
   isAdmin,
+  currentUserId,
   replyDrafts,
   onReplyDraftChange,
   onSubmitReply,
@@ -346,15 +347,34 @@ function ReviewThreadList({
     <div className="review-list review-list-wide">
       {reviews.map((review) => {
         const reviewId = Number(review.id_review)
+        const reviewUserId = Number(review.id_usuario)
         const replyValue = replyDrafts[reviewId] ?? review.reply ?? ''
         const hasReply = String(review.reply || '').trim().length > 0
         const replyKey = `reply-${reviewId}`
+        const isOwner = reviewUserId > 0 && reviewUserId === Number(currentUserId || 0)
+        const canDelete = isAdmin || isOwner
 
         return (
           <article className="review-item" key={review.id_review}>
             <div className="review-item-head">
               <strong>{review.author_name || review.usuario || 'Cliente'}</strong>
-              <span>{formatReviewDate(review.created_at)}</span>
+              <div className="review-item-head-actions">
+                <span>{formatReviewDate(review.created_at)}</span>
+                {canDelete ? (
+                  <button
+                    className="review-delete-icon-btn"
+                    type="button"
+                    onClick={() => onDeleteReview(reviewId)}
+                    disabled={deletingKey === replyKey}
+                    aria-label="Eliminar reseña"
+                    title="Eliminar reseña"
+                  >
+                    <svg viewBox="0 0 24 24" role="img" focusable="false" aria-hidden="true">
+                      <path d="M9 3h6l1 2h4v2H4V5h4l1-2Zm1 6h2v8h-2V9Zm4 0h2v8h-2V9ZM7 9h2v8H7V9Zm-1 12h12l1-14H5l1 14Z" />
+                    </svg>
+                  </button>
+                ) : null}
+              </div>
             </div>
             <ReviewStars rating={review.rating} />
             {review.comment ? <p>{review.comment}</p> : null}
@@ -389,14 +409,6 @@ function ReviewThreadList({
                     : hasReply
                       ? 'Actualizar respuesta'
                       : 'Responder'}
-                </button>
-                <button
-                  className="btn btn-danger review-submit-btn"
-                  type="button"
-                  onClick={() => onDeleteReview(reviewId)}
-                  disabled={deletingKey === replyKey}
-                >
-                  {deletingKey === replyKey ? 'Eliminando...' : 'Eliminar reseña'}
                 </button>
               </div>
             ) : null}
@@ -437,6 +449,7 @@ function PasswordField({ name, value, onChange, placeholder, required = false })
 function PlatformReviewSection({
   isAuthenticated,
   isAdmin,
+  currentUserId,
   reviews,
   summary,
   draft,
@@ -505,6 +518,7 @@ function PlatformReviewSection({
         reviews={reviews}
         emptyText="Sé el primero en compartir tu experiencia y ayuda a otros amantes del café a descubrir nuestros productos."
         isAdmin={isAdmin}
+        currentUserId={currentUserId}
         replyDrafts={replyDrafts}
         onReplyDraftChange={onReplyDraftChange}
         onSubmitReply={onSubmitReply}
@@ -601,6 +615,7 @@ function Home({
   onPreviewImage,
   isAuthenticated,
   isAdmin,
+  currentUserId,
   appReviews,
   appReviewSummary,
   appReviewDraft,
@@ -741,6 +756,7 @@ function Home({
       <PlatformReviewSection
         isAuthenticated={isAuthenticated}
         isAdmin={isAdmin}
+        currentUserId={currentUserId}
         reviews={appReviews}
         summary={appReviewSummary}
         draft={appReviewDraft}
@@ -1942,6 +1958,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 reviews={productReviews}
                 emptyText="Aun no hay reseñas para este producto."
                 isAdmin={isAdmin}
+                currentUserId={user?.id_usuario}
                 replyDrafts={reviewReplyDrafts}
                 onReplyDraftChange={(reviewId, value) =>
                   setReviewReplyDrafts((prev) => ({ ...prev, [reviewId]: value }))
@@ -3533,6 +3550,7 @@ function App() {
                 onPreviewImage={openPreviewImage}
                 isAuthenticated={isAuthenticated}
                 isAdmin={isAdmin}
+                currentUserId={user?.id_usuario}
                 appReviews={appReviews}
                 appReviewSummary={appReviewSummary}
                 appReviewDraft={appReviewDraft}
