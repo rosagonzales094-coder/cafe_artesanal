@@ -19,6 +19,7 @@ const projectRoot = path.resolve(__dirname, '..')
 const distDir = path.resolve(projectRoot, 'dist')
 const indexFile = path.resolve(distDir, 'index.html')
 const catalogPdfFile = path.resolve(projectRoot, 'public', 'imagenes', 'Catalogo_Coffe_Drink.pdf')
+const productUploadsDir = path.resolve(projectRoot, 'public', 'imagenes', 'uploads')
 
 app.use(
   cors({
@@ -26,6 +27,9 @@ app.use(
   }),
 )
 app.use(express.json())
+
+fs.mkdirSync(productUploadsDir, { recursive: true })
+app.use('/api/products/uploads', express.static(productUploadsDir))
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'Cafe Artesanal API' })

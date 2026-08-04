@@ -1,9 +1,37 @@
 import express from 'express'
+import fs from 'node:fs'
+import path from 'node:path'
+import { randomUUID } from 'node:crypto'
+import multer from 'multer'
 import pool from '../db.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import { ensureSellableShowcaseProducts } from '../catalogBootstrap.js'
 
 const router = express.Router()
+const uploadDir = path.resolve(process.cwd(), 'public', 'imagenes', 'uploads')
+
+fs.mkdirSync(uploadDir, { recursive: true })
+
+const imageStorage = multer.diskStorage({
+  destination: uploadDir,
+  filename: (req, file, cb) => {
+    const extension = path.extname(file.originalname || '').toLowerCase() || '.jpg'
+    cb(null, `${Date.now()}-${randomUUID()}${extension}`)
+  },
+})
+
+const uploadImage = multer({
+  storage: imageStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    if (!String(file.mimetype || '').startsWith('image/')) {
+      cb(new Error('Solo se permiten archivos de imagen'))
+      return
+    }
+
+    cb(null, true)
+  },
+})
 
 let productImageColumnPromise = null
 
@@ -93,6 +121,20 @@ router.get('/meta', requireAuth, requireAdmin, async (req, res) => {
   } catch (error) {
     return res.status(500).json({ message: 'Error al cargar datos auxiliares', error })
   }
+})
+
+router.post('/images', requireAuth, requireAdmin, uploadImage.single('image'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: 'Selecciona una imagen para subir' })
+  }
+
+  const imageUrl = `${req.protocol}://${req.get('host')}/api/products/uploads/${req.file.filename}`
+
+  return res.status(201).json({
+    message: 'Imagen cargada correctamente',
+    imageUrl,
+    fileName: req.file.originalname,
+  })
 })
 
 router.post('/categories', requireAuth, requireAdmin, async (req, res) => {

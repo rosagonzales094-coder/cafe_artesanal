@@ -94,6 +94,24 @@ const PRODUCT_UNIT_OPTIONS = [
   { value: 'Paquete', label: 'Paquete' },
 ]
 
+async function uploadProductImageFile(token, file) {
+  const formData = new FormData()
+  formData.append('image', file)
+
+  const response = await fetch(`${API_URL}/products/images`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
+  })
+
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.message || 'No se pudo cargar la imagen')
+  }
+
+  return data.imageUrl
+}
+
 function getProductImageUrl(product, index) {
   const customImage = String(product?.imagen_url || product?.imagen || '').trim()
   const code = normalizeCode(product?.codigo)
@@ -1135,8 +1153,9 @@ function AddProductPage({ token, onNotify }) {
   const [adminMeta, setAdminMeta] = useState({ categorias: [], proveedores: [] })
   const [form, setForm] = useState(INITIAL_ADMIN_PRODUCT_FORM)
   const [saving, setSaving] = useState(false)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const [message, setMessage] = useState('')
-  const imageInputRef = useRef(null)
+  const fileInputRef = useRef(null)
 
   const previewImageUrl = form.imagen_url.trim() || PRODUCT_IMAGE_FALLBACKS[0]
 
@@ -1179,8 +1198,29 @@ function AddProductPage({ token, onNotify }) {
   const clearImage = () => {
     setForm((prev) => ({ ...prev, imagen_url: '' }))
     window.requestAnimationFrame(() => {
-      imageInputRef.current?.focus()
+      fileInputRef.current?.focus()
     })
+  }
+
+  const openFilePicker = () => {
+    fileInputRef.current?.click()
+  }
+
+  const onImageFileChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setUploadingImage(true)
+    try {
+      const imageUrl = await uploadProductImageFile(token, file)
+      setForm((prev) => ({ ...prev, imagen_url: imageUrl }))
+      onNotify('Imagen cargada correctamente.')
+    } catch (requestError) {
+      onNotify(requestError.message)
+    } finally {
+      setUploadingImage(false)
+      event.target.value = ''
+    }
   }
 
   const onSubmit = async (event) => {
@@ -1346,28 +1386,30 @@ function AddProductPage({ token, onNotify }) {
         <aside className="admin-edit-side">
           <section className="admin-edit-card admin-image-card">
             <div className="admin-edit-card-header">
-              <h4>Imagen del producto</h4>
-              <p>Agrega una ruta o URL de imagen para mostrarla en el catálogo.</p>
+              <h4>Foto del producto</h4>
+              <p>Selecciona una foto desde tu computadora para mostrarla en el catálogo.</p>
             </div>
             <div className="image-preview-panel">
               <img src={previewImageUrl} alt="Vista previa del producto" />
             </div>
             <div className="admin-image-actions">
-              <button className="btn btn-ghost" type="button" onClick={() => imageInputRef.current?.focus()}>
-                Cambiar imagen
+              <button className="btn btn-ghost" type="button" onClick={openFilePicker} disabled={uploadingImage}>
+                    {uploadingImage ? 'Cargando...' : 'Agregar foto'}
               </button>
               <button className="btn btn-danger" type="button" onClick={clearImage} disabled={!form.imagen_url.trim()}>
                 Eliminar
               </button>
             </div>
             <input
-              ref={imageInputRef}
-              className="span-all"
-              name="imagen_url"
-              placeholder="Imagen del producto (URL o ruta)"
-              value={form.imagen_url}
-              onChange={onChange}
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="admin-file-input"
+              onChange={onImageFileChange}
             />
+            <p className="admin-image-hint">
+              {form.imagen_url ? 'Foto cargada en el sistema.' : 'Todavía no has seleccionado una foto.'}
+            </p>
           </section>
 
           <section className="admin-edit-card admin-state-card">
@@ -1426,7 +1468,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [categoryEditName, setCategoryEditName] = useState('')
   const [categorySaving, setCategorySaving] = useState(false)
   const adminFormRef = useRef(null)
-  const adminImageInputRef = useRef(null)
+  const adminImageFileInputRef = useRef(null)
+  const [adminImageUploading, setAdminImageUploading] = useState(false)
 
   const isAdmin = String(user?.rol || '').trim().toLowerCase() === 'administrador'
   const featuredCode = useMemo(() => {
@@ -1632,15 +1675,34 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
   const previewImageUrl = adminForm.imagen_url.trim() || PRODUCT_IMAGE_FALLBACKS[0]
 
-  const focusImageInput = () => {
-    adminImageInputRef.current?.focus()
+  const openAdminImagePicker = () => {
+    adminImageFileInputRef.current?.click()
   }
 
   const clearProductImage = () => {
     setAdminForm((prev) => ({ ...prev, imagen_url: '' }))
     window.requestAnimationFrame(() => {
-      adminImageInputRef.current?.focus()
+      adminImageFileInputRef.current?.focus()
     })
+  }
+
+  const onAdminImageFileChange = async (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setAdminImageUploading(true)
+    try {
+      const imageUrl = await uploadProductImageFile(token, file)
+      setAdminForm((prev) => ({ ...prev, imagen_url: imageUrl }))
+      setAdminMessage('Imagen cargada correctamente.')
+      onNotify('Imagen cargada correctamente.')
+    } catch (requestError) {
+      setAdminMessage(requestError.message)
+      onNotify(requestError.message)
+    } finally {
+      setAdminImageUploading(false)
+      event.target.value = ''
+    }
   }
 
   const resetAdminForm = () => {
@@ -2407,15 +2469,20 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               <aside className="admin-edit-side">
                 <section className="admin-edit-card admin-image-card">
                   <div className="admin-edit-card-header">
-                    <h4>Imagen del producto</h4>
-                    <p>Pega una URL o ruta local para mostrar la primera imagen.</p>
+                    <h4>Foto del producto</h4>
+                    <p>Selecciona una foto desde tu computadora para mostrar la primera imagen.</p>
                   </div>
                   <div className="image-preview-panel">
                     <img src={previewImageUrl} alt="Vista previa del producto" />
                   </div>
                   <div className="admin-image-actions">
-                    <button className="btn btn-ghost" type="button" onClick={focusImageInput}>
-                      Cambiar imagen
+                    <button
+                      className="btn btn-ghost"
+                      type="button"
+                      onClick={openAdminImagePicker}
+                      disabled={adminImageUploading}
+                    >
+                      {adminImageUploading ? 'Cargando...' : 'Agregar foto'}
                     </button>
                     <button
                       className="btn btn-danger"
@@ -2427,13 +2494,17 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                     </button>
                   </div>
                   <input
-                    ref={adminImageInputRef}
-                    className="span-all"
-                    name="imagen_url"
-                    placeholder="Imagen del producto (URL o ruta)"
-                    value={adminForm.imagen_url}
-                    onChange={onAdminChange}
+                    ref={adminImageFileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="admin-file-input"
+                    onChange={onAdminImageFileChange}
                   />
+                  <p className="admin-image-hint">
+                    {adminForm.imagen_url
+                      ? 'Foto cargada en el sistema.'
+                      : 'Todavía no has seleccionado una foto.'}
+                  </p>
                 </section>
 
                 <section className="admin-edit-card admin-state-card">
