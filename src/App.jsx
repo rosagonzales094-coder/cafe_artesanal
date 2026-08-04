@@ -1352,6 +1352,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
   }
 
+  const previewImageUrl = adminForm.imagen_url.trim() || PRODUCT_IMAGE_FALLBACKS[0]
+
   const resetAdminForm = () => {
     setAdminForm(INITIAL_ADMIN_PRODUCT_FORM)
     setEditingProductId(null)
@@ -1874,30 +1876,17 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               </select>
             </div>
               <div className="span-all admin-category-toolbar admin-category-management">
-                <label>Gestión de categorías:</label>
-                <div className="admin-category-actions">
-                  <button
-                    className={`btn ${categoryAction === CATEGORY_ACTION_ADD ? 'btn-solid' : 'btn-ghost'}`}
-                    type="button"
-                    onClick={() => openCategoryAction(CATEGORY_ACTION_ADD)}
-                  >
-                    Registrar categoría
-                  </button>
-                  <button
-                    className={`btn ${categoryAction === CATEGORY_ACTION_EDIT ? 'btn-solid' : 'btn-ghost'}`}
-                    type="button"
-                    onClick={() => openCategoryAction(CATEGORY_ACTION_EDIT)}
-                  >
-                    Editar categoría
-                  </button>
-                  <button
-                    className={`btn ${categoryAction === CATEGORY_ACTION_DELETE ? 'btn-solid' : 'btn-ghost'}`}
-                    type="button"
-                    onClick={() => openCategoryAction(CATEGORY_ACTION_DELETE)}
-                  >
-                    Eliminar categoría
-                  </button>
-                </div>
+                <label htmlFor="category-action-menu">Gestión de categorías:</label>
+                <select
+                  id="category-action-menu"
+                  value={categoryAction}
+                  onChange={(event) => openCategoryAction(event.target.value)}
+                >
+                  <option value="">Selecciona una acción</option>
+                  <option value={CATEGORY_ACTION_ADD}>Agregar categoría</option>
+                  <option value={CATEGORY_ACTION_EDIT}>Editar categoría</option>
+                  <option value={CATEGORY_ACTION_DELETE}>Eliminar categoría</option>
+                </select>
               </div>
               {categoryAction ? (
                 <div className="span-all category-inline-panel">
@@ -2044,6 +2033,10 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 value={adminForm.imagen_url}
                 onChange={onAdminChange}
               />
+              <div className="span-all image-preview-panel">
+                <span>Vista previa de imagen</span>
+                <img src={previewImageUrl} alt="Vista previa del producto" />
+              </div>
               <input
                 name="precio_compra"
                 type="number"

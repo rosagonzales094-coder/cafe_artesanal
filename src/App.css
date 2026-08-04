@@ -1196,10 +1196,8 @@ input:focus {
   margin-bottom: 0.85rem;
 }
 
-.admin-category-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 0.5rem;
+.admin-category-management select {
+  width: 100%;
 }
 
 .category-inline-panel {
@@ -1223,6 +1221,28 @@ input:focus {
 
 .category-inline-actions .btn {
   width: 100%;
+}
+
+.image-preview-panel {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(255, 210, 142, 0.24);
+  border-radius: 14px;
+  background: rgba(30, 15, 8, 0.32);
+}
+
+.image-preview-panel span {
+  font-size: 0.86rem;
+  color: #f7ddaf;
+}
+
+.image-preview-panel img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 210, 142, 0.24);
 }
 
 .cart-row {
