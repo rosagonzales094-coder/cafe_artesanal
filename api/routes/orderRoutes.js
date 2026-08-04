@@ -43,19 +43,19 @@ router.post('/', requireAuth, async (req, res) => {
 
   if (!ALLOWED_PAYMENT_METHODS.includes(metodo_pago)) {
     return res.status(400).json({
-      message: 'Metodo de pago invalido. Usa deposito o transferencia bancaria.',
+      message: 'Método de pago inválido. Usa depósito o transferencia bancaria.',
     })
   }
 
   if (!['RETIRO_TIENDA', 'ENTREGA_DOMICILIO'].includes(forma_entrega)) {
     return res.status(400).json({
-      message: 'Selecciona una forma de entrega valida',
+      message: 'Selecciona una forma de entrega válida',
     })
   }
 
   if (forma_entrega === 'ENTREGA_DOMICILIO' && !String(direccion_entrega || '').trim()) {
     return res.status(400).json({
-      message: 'Ingresa la direccion de entrega para envio a domicilio',
+      message: 'Ingresa la dirección de entrega para envío a domicilio',
     })
   }
 
@@ -116,7 +116,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (coffeeUnits > MAX_COFFEE_UNITS_PER_ORDER) {
       await connection.rollback()
       return res.status(400).json({
-        message: `Solo puedes comprar maximo ${MAX_COFFEE_UNITS_PER_ORDER} cafes por pedido.`,
+        message: `Solo puedes comprar máximo ${MAX_COFFEE_UNITS_PER_ORDER} cafés por pedido.`,
       })
     }
 
@@ -133,11 +133,11 @@ router.post('/', requireAuth, async (req, res) => {
     const paymentMethodName =
       metodo_pago === 'TRANSFERENCIA_BANCARIA'
         ? 'Transferencia bancaria'
-        : 'Deposito bancario'
+        : 'Depósito bancario'
     const paymentMethodDescription =
       metodo_pago === 'TRANSFERENCIA_BANCARIA'
         ? 'Pago por transferencia a cuenta bancaria'
-        : 'Pago por deposito a cuenta bancaria'
+        : 'Pago por depósito a cuenta bancaria'
 
     const [paymentMethodRows] = await connection.query(
       `SELECT id_metodo FROM metodos_pago WHERE nombre = ? LIMIT 1`,
@@ -186,7 +186,7 @@ router.post('/', requireAuth, async (req, res) => {
     await connection.commit()
 
     return res.status(201).json({
-      message: 'Pedido registrado. Esperando validacion del deposito.',
+      message: 'Pedido registrado. Esperando validación del depósito.',
       order: {
         id_venta: saleResult.insertId,
         subtotal: total,
@@ -374,7 +374,7 @@ router.get('/admin/all', requireAuth, requireAdmin, async (req, res) => {
               return {
                 ...item,
                 nombre_producto: product?.nombre || `Producto #${item.id_producto}`,
-                categoria_producto: product?.categoria || 'Sin categoria',
+                categoria_producto: product?.categoria || 'Sin categoría',
               }
             })
           : []

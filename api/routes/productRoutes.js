@@ -141,7 +141,7 @@ router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
   const nombre = String(req.body?.nombre || '').trim()
 
   if (!nombre) {
-    return res.status(400).json({ message: 'El nombre de la categoria es obligatorio' })
+    return res.status(400).json({ message: 'El nombre de la categoría es obligatorio' })
   }
 
   try {
@@ -151,23 +151,23 @@ router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
     )
 
     if (existingRows.length > 0) {
-      return res.status(409).json({ message: 'La categoria ya existe' })
+      return res.status(409).json({ message: 'La categoría ya existe' })
     }
 
     const [result] = await pool.query(
-      "INSERT INTO categorias (nombre, descripcion, estado) VALUES (?, 'Categoria creada desde panel admin', 'ACTIVA')",
+      "INSERT INTO categorias (nombre, descripcion, estado) VALUES (?, 'Categoría creada desde panel admin', 'ACTIVA')",
       [nombre],
     )
 
     return res.status(201).json({
-      message: 'Categoria creada correctamente',
+      message: 'Categoría creada correctamente',
       categoria: {
         id_categoria: result.insertId,
         nombre,
       },
     })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al crear categoria', error })
+    return res.status(500).json({ message: 'Error al crear categoría', error })
   }
 })
 
@@ -175,7 +175,7 @@ router.delete('/categories/:idCategoria', requireAuth, requireAdmin, async (req,
   const idCategoria = Number(req.params.idCategoria)
 
   if (!idCategoria) {
-    return res.status(400).json({ message: 'ID de categoria invalido' })
+    return res.status(400).json({ message: 'ID de categoría inválido' })
   }
 
   try {
@@ -187,7 +187,7 @@ router.delete('/categories/:idCategoria', requireAuth, requireAdmin, async (req,
     if (Number(usageRows[0]?.total || 0) > 0) {
       return res.status(409).json({
         message:
-          'No se puede eliminar la categoria porque tiene productos asociados. Reasigna o elimina esos productos primero.',
+          'No se puede eliminar la categoría porque tiene productos asociados. Reasigna o elimina esos productos primero.',
       })
     }
 
@@ -196,12 +196,12 @@ router.delete('/categories/:idCategoria', requireAuth, requireAdmin, async (req,
     ])
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Categoria no encontrada' })
+      return res.status(404).json({ message: 'Categoría no encontrada' })
     }
 
-    return res.json({ message: 'Categoria eliminada correctamente' })
+    return res.json({ message: 'Categoría eliminada correctamente' })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al eliminar categoria', error })
+    return res.status(500).json({ message: 'Error al eliminar categoría', error })
   }
 })
 
@@ -210,11 +210,11 @@ router.put('/categories/:idCategoria', requireAuth, requireAdmin, async (req, re
   const nombre = String(req.body?.nombre || '').trim()
 
   if (!idCategoria) {
-    return res.status(400).json({ message: 'ID de categoria invalido' })
+    return res.status(400).json({ message: 'ID de categoría inválido' })
   }
 
   if (!nombre) {
-    return res.status(400).json({ message: 'El nuevo nombre de categoria es obligatorio' })
+    return res.status(400).json({ message: 'El nuevo nombre de categoría es obligatorio' })
   }
 
   try {
@@ -224,7 +224,7 @@ router.put('/categories/:idCategoria', requireAuth, requireAdmin, async (req, re
     )
 
     if (existingRows.length > 0) {
-      return res.status(409).json({ message: 'Ya existe otra categoria con ese nombre' })
+      return res.status(409).json({ message: 'Ya existe otra categoría con ese nombre' })
     }
 
     const [result] = await pool.query(
@@ -233,12 +233,12 @@ router.put('/categories/:idCategoria', requireAuth, requireAdmin, async (req, re
     )
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Categoria no encontrada' })
+      return res.status(404).json({ message: 'Categoría no encontrada' })
     }
 
-    return res.json({ message: 'Categoria actualizada correctamente' })
+    return res.json({ message: 'Categoría actualizada correctamente' })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al actualizar categoria', error })
+    return res.status(500).json({ message: 'Error al actualizar categoría', error })
   }
 })
 
@@ -268,11 +268,11 @@ function sanitizeProductPayload(body) {
 
 function validateProductPayload(payload) {
   if (!payload.id_categoria || !payload.id_proveedor) {
-    return 'Selecciona categoria y proveedor'
+    return 'Selecciona categoría y proveedor'
   }
 
   if (!payload.codigo || !payload.nombre) {
-    return 'Codigo y nombre son obligatorios'
+    return 'Código y nombre son obligatorios'
   }
 
   if (!payload.unidad) {
@@ -288,7 +288,7 @@ function validateProductPayload(payload) {
   }
 
   if (payload.stock < 0 || payload.stock_minimo < 0) {
-    return 'Stock y stock minimo no pueden ser negativos'
+    return 'Stock y stock mínimo no pueden ser negativos'
   }
 
   return null
@@ -378,7 +378,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         )
 
         if (existingRows.length === 0) {
-          return res.status(409).json({ message: 'El codigo del producto ya existe' })
+          return res.status(409).json({ message: 'El código del producto ya existe' })
         }
 
         const existing = existingRows[0]
@@ -440,7 +440,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 router.put('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
   const idProducto = Number(req.params.idProducto)
   if (!idProducto) {
-    return res.status(400).json({ message: 'ID de producto invalido' })
+    return res.status(400).json({ message: 'ID de producto inválido' })
   }
 
   const payload = sanitizeProductPayload(req.body)
@@ -507,7 +507,7 @@ router.put('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
     })
   } catch (error) {
     if (error?.code === 'ER_DUP_ENTRY') {
-      return res.status(409).json({ message: 'El codigo del producto ya existe' })
+      return res.status(409).json({ message: 'El código del producto ya existe' })
     }
 
     return res.status(500).json({ message: 'Error al actualizar producto', error })
@@ -517,7 +517,7 @@ router.put('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
 router.delete('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
   const idProducto = Number(req.params.idProducto)
   if (!idProducto) {
-    return res.status(400).json({ message: 'ID de producto invalido' })
+    return res.status(400).json({ message: 'ID de producto inválido' })
   }
 
   try {

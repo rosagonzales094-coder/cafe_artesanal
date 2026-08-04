@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
   if (password.length < 8) {
     return res
       .status(400)
-      .json({ message: 'La contrasena debe tener al menos 8 caracteres' })
+      .json({ message: 'La contraseña debe tener al menos 8 caracteres' })
   }
 
   let connection
@@ -88,7 +88,7 @@ router.post('/register', async (req, res) => {
         await connection.rollback()
         return res.status(409).json({
           message:
-            'La contrasena ya esta en uso. Elige una diferente para mayor seguridad.',
+            'La contraseña ya está en uso. Elige una diferente para mayor seguridad.',
         })
       }
     }
@@ -166,7 +166,7 @@ router.post('/login', async (req, res) => {
   const { usuario, password } = req.body
 
   if (!usuario || !password) {
-    return res.status(400).json({ message: 'Usuario y contrasena son obligatorios' })
+    return res.status(400).json({ message: 'Usuario y contraseña son obligatorios' })
   }
 
   try {
@@ -213,7 +213,7 @@ router.post('/login', async (req, res) => {
       },
     })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al iniciar sesion', error })
+    return res.status(500).json({ message: 'Error al iniciar sesión', error })
   }
 })
 

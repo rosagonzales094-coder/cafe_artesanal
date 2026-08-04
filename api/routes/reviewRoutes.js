@@ -145,7 +145,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 
   if (!rating) {
-    return res.status(400).json({ message: 'Selecciona una calificacion entre 1 y 5' })
+    return res.status(400).json({ message: 'Selecciona una calificación entre 1 y 5' })
   }
 
   if (scope === 'APP' && !comment) {
@@ -153,7 +153,7 @@ router.post('/', requireAuth, async (req, res) => {
   }
 
   if (scope === 'PRODUCT' && !idProducto) {
-    return res.status(400).json({ message: 'Selecciona un producto valido' })
+    return res.status(400).json({ message: 'Selecciona un producto válido' })
   }
 
   let connection

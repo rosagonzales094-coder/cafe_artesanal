@@ -253,6 +253,7 @@ const INITIAL_ADMIN_PRODUCT_FORM = {
 const CATEGORY_ACTION_ADD = '__CATEGORY_ACTION_ADD__'
 const CATEGORY_ACTION_EDIT = '__CATEGORY_ACTION_EDIT__'
 const CATEGORY_ACTION_DELETE = '__CATEGORY_ACTION_DELETE__'
+const CATEGORY_FILTER_ALL_OPTION = '__CATEGORY_FILTER_ALL__'
 const MAX_COFFEE_UNITS_PER_ORDER = 6
 const CART_STORAGE_KEY = 'cafe_artesanal_cart_v1'
 const APP_REVIEW_STORAGE_KEY = 'cafe_artesanal_app_reviews_v1'
@@ -358,7 +359,7 @@ function ReviewStars({ rating }) {
   const safeRating = Math.max(0, Math.min(5, Number(rating) || 0))
   const fullStars = Math.round(safeRating)
 
-  return <span className="review-stars" aria-label={`Calificacion ${safeRating} de 5`}>{'★'.repeat(fullStars).padEnd(5, '☆')}</span>
+  return <span className="review-stars" aria-label={`Calificación ${safeRating} de 5`}>{'★'.repeat(fullStars).padEnd(5, '☆')}</span>
 }
 
 function RatingPicker({ value, onChange, label }) {
@@ -647,7 +648,7 @@ function PlatformReviewSection({
       {isAuthenticated ? (
         <div className="product-review-panel">
           <RatingPicker
-            label="Tu calificacion"
+            label="Tu calificación"
             value={draft.rating}
             onChange={(rating) => onDraftChange((prev) => ({ ...prev, rating }))}
           />
@@ -671,7 +672,7 @@ function PlatformReviewSection({
         </div>
       ) : (
         <p className="status-text review-login-note">
-          Inicia sesion para dejar tu comentario general sobre la plataforma.
+          Inicia sesión para dejar tu comentario general sobre la plataforma.
         </p>
       )}
 
@@ -722,7 +723,7 @@ function getPaymentMethodLabel(value) {
     return 'Transferencia bancaria'
   }
 
-  return 'Deposito bancario'
+  return 'Depósito bancario'
 }
 
 function mapProductToAdminForm(product) {
@@ -776,7 +777,7 @@ function ProtectedRoute({ isAuthenticated, children }) {
 
 function WhatsAppButton() {
   const text = encodeURIComponent(
-    'Hola, deseo informacion sobre cafe artesanal de Zaruma El Oro.',
+    'Hola, deseo información sobre café artesanal de Zaruma, El Oro.',
   )
   return (
     <a
@@ -823,15 +824,15 @@ function Home({
     <>
       <section className="hero-home" id="sobre-nosotros">
         <div className="hero-copy">
-          <p className="eyebrow">Cafe artesanal ecuatoriano</p>
-          <h1>El mejor cafe, directo de la provincia de El Oro a tu taza</h1>
+          <p className="eyebrow">Café artesanal ecuatoriano</p>
+          <h1>El mejor café, directo de la provincia de El Oro a tu taza</h1>
           <p>
-            Un cafe gourmet de edicion especial, inspirado en la historia,
-            tradicion y riqueza de Zaruma.
+            Un café gourmet de edición especial, inspirado en la historia,
+            tradición y riqueza de Zaruma.
           </p>
           <div className="hero-points">
-            <span>100% arabica de origen Zaruma</span>
-            <span>Tostado fresco por lotes pequenos</span>
+            <span>100% arábica de origen Zaruma</span>
+            <span>Tostado fresco por lotes pequeños</span>
             <span>Ediciones especiales y perfil premium</span>
           </div>
           <div className="hero-cta">
@@ -842,23 +843,23 @@ function Home({
               rel="noreferrer"
               download="Catalogo_Coffe_Drink.pdf"
             >
-              Descargar catalogo PDF
+              Descargar catálogo PDF
             </a>
             <Link className="btn btn-ghost" to="/login">
-              Iniciar sesion
+              Iniciar sesión
             </Link>
           </div>
           <div className="hero-metrics">
             <article className="metric">
               <strong>100%</strong>
-              <p>Arabica</p>
+              <p>Arábica</p>
             </article>
             <article className="metric">
               <strong>Origen</strong>
               <p>Zaruma</p>
             </article>
             <article className="metric">
-              <strong>Edicion</strong>
+              <strong>Edición</strong>
               <p>Especial</p>
             </article>
           </div>
@@ -867,11 +868,11 @@ function Home({
 
       <section className="location-section" id="ubicacion">
         <div className="location-copy card">
-          <p className="eyebrow">Ubicacion</p>
-          <h2>Visitanos en Zaruma, El Oro</h2>
+          <p className="eyebrow">Ubicación</p>
+          <h2>Visítanos en Zaruma, El Oro</h2>
           <p>
-            Estamos en Zaruma, una ciudad patrimonial con tradicion cafetera.
-            Puedes retirar tu pedido en tienda fisica o coordinar entrega.
+            Estamos en Zaruma, una ciudad patrimonial con tradición cafetera.
+            Puedes retirar tu pedido en tienda física o coordinar entrega.
           </p>
           <p>
             Referencia: Centro de Zaruma, provincia de El Oro, Ecuador.
@@ -898,11 +899,11 @@ function Home({
 
       <section className="specials-section" id="cafes-especiales">
         <div className="specials-heading">
-          <p className="eyebrow">Seleccion destacada</p>
-          <h2>Cafes especiales con perfil premium</h2>
+          <p className="eyebrow">Selección destacada</p>
+          <h2>Cafés especiales con perfil premium</h2>
           <p>
             Elige entre nuestras ediciones favoritas con tueste fresco, notas
-            aromaticas definidas y presentaciones listas para regalar o disfrutar.
+            aromáticas definidas y presentaciones listas para regalar o disfrutar.
           </p>
         </div>
         <div className="specials-grid">
@@ -936,7 +937,7 @@ function Home({
                     className="btn btn-solid"
                     to={`/catalogo?destacado=${encodeURIComponent(coffee.codigo)}`}
                   >
-                    Edicion limitada
+                    Edición limitada
                   </Link>
                 </div>
               </div>
@@ -998,10 +999,10 @@ function Login({ onLogin, onNotify }) {
       })
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.message || 'No fue posible iniciar sesion')
+        throw new Error(data.message || 'No fue posible iniciar sesión')
       }
       onLogin(data)
-      onNotify(`Bienvenido, ${data.user?.usuario || 'cliente'}. Sesion iniciada.`)
+      onNotify(`Bienvenido, ${data.user?.usuario || 'cliente'}. Sesión iniciada.`)
       navigate('/catalogo')
     } catch (requestError) {
       setError(requestError.message)
@@ -1012,7 +1013,7 @@ function Login({ onLogin, onNotify }) {
 
   return (
     <section className="card auth-card">
-      <h2>Iniciar sesion</h2>
+      <h2>Iniciar sesión</h2>
       <form onSubmit={onSubmit} className="form-grid">
         <input
           name="usuario"
@@ -1023,7 +1024,7 @@ function Login({ onLogin, onNotify }) {
         />
         <PasswordField
           name="password"
-          placeholder="Contrasena"
+          placeholder="Contraseña"
           value={form.password}
           onChange={onChange}
           required
@@ -1034,7 +1035,7 @@ function Login({ onLogin, onNotify }) {
         </button>
       </form>
       <p className="auth-helper">
-        No tienes cuenta? <Link to="/registro">Registrate aqui</Link>
+        ¿No tienes cuenta? <Link to="/registro">Regístrate aquí</Link>
       </p>
     </section>
   )
@@ -1074,7 +1075,7 @@ function Register({ onRegister, onNotify }) {
         throw new Error(data.message || 'No fue posible crear la cuenta')
       }
       onRegister(data)
-      onNotify('Cuenta creada correctamente. Ya puedes comprar en el catalogo.')
+      onNotify('Cuenta creada correctamente. Ya puedes comprar en el catálogo.')
       navigate('/catalogo')
     } catch (requestError) {
       setError(requestError.message)
@@ -1085,7 +1086,7 @@ function Register({ onRegister, onNotify }) {
 
   return (
     <section className="card auth-card">
-      <h2>Crear cuenta para ver el catalogo</h2>
+      <h2>Crear cuenta para ver el catálogo</h2>
       <form onSubmit={onSubmit} className="form-grid two-cols">
         <input
           name="nombres"
@@ -1103,7 +1104,7 @@ function Register({ onRegister, onNotify }) {
         />
         <input
           name="telefono"
-          placeholder="Telefono"
+          placeholder="Teléfono"
           value={form.telefono}
           onChange={onChange}
         />
@@ -1117,7 +1118,7 @@ function Register({ onRegister, onNotify }) {
         />
         <input
           name="direccion"
-          placeholder="Direccion"
+          placeholder="Dirección"
           value={form.direccion}
           onChange={onChange}
         />
@@ -1130,7 +1131,7 @@ function Register({ onRegister, onNotify }) {
         />
         <PasswordField
           name="password"
-          placeholder="Contrasena (minimo 8 caracteres)"
+          placeholder="Contraseña (mínimo 8 caracteres)"
           value={form.password}
           onChange={onChange}
           required
@@ -1165,7 +1166,7 @@ function AddProductPage({ token, onNotify }) {
     })
     const data = await response.json()
     if (!response.ok) {
-      throw new Error(data.message || 'No se pudo cargar categorias y proveedores')
+      throw new Error(data.message || 'No se pudo cargar categorías y proveedores')
     }
 
     setAdminMeta({
@@ -1591,7 +1592,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     })
     const data = await response.json()
     if (!response.ok) {
-      throw new Error(data.message || 'No se pudo cargar el catalogo')
+      throw new Error(data.message || 'No se pudo cargar el catálogo')
     }
     setProducts(data.products)
   }, [token])
@@ -1604,7 +1605,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     })
     const metaData = await metaResponse.json()
     if (!metaResponse.ok) {
-      throw new Error(metaData.message || 'No se pudo cargar categorias y proveedores')
+      throw new Error(metaData.message || 'No se pudo cargar categorías y proveedores')
     }
 
     setAdminMeta({
@@ -1761,7 +1762,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
   const deleteProduct = async (product) => {
     const confirmed = window.confirm(
-      `Eliminar producto ${product.nombre} (${product.codigo})? Esta accion no se puede deshacer.`,
+      `Eliminar producto ${product.nombre} (${product.codigo})? Esta acción no se puede deshacer.`,
     )
     if (!confirmed) return
 
@@ -1797,7 +1798,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const createCategory = async () => {
     const nombre = newCategoryName.trim()
     if (!nombre) {
-      onNotify('Ingresa un nombre para la nueva categoria.')
+      onNotify('Ingresa un nombre para la nueva categoría.')
       return
     }
 
@@ -1814,10 +1815,10 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.message || 'No se pudo crear la categoria')
+        throw new Error(data.message || 'No se pudo crear la categoría')
       }
 
-      onNotify(data.message || 'Categoria creada correctamente.')
+      onNotify(data.message || 'Categoría creada correctamente.')
       setNewCategoryName('')
       await loadAdminMeta()
     } catch (requestError) {
@@ -1829,7 +1830,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
   const removeCategory = async () => {
     if (!categoryTargetIdValue) {
-      onNotify('Selecciona una categoria para eliminar.')
+      onNotify('Selecciona una categoría para eliminar.')
       return
     }
 
@@ -1838,7 +1839,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     )
 
     const confirmed = window.confirm(
-      `Eliminar categoria ${selected?.nombre || ''}? Esta accion no se puede deshacer.`,
+      `Eliminar categoría ${selected?.nombre || ''}? Esta acción no se puede deshacer.`,
     )
     if (!confirmed) return
 
@@ -1854,10 +1855,10 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.message || 'No se pudo eliminar la categoria')
+        throw new Error(data.message || 'No se pudo eliminar la categoría')
       }
 
-      onNotify(data.message || 'Categoria eliminada correctamente.')
+      onNotify(data.message || 'Categoría eliminada correctamente.')
       setCategoryTargetId('')
       setCategoryEditName('')
       await loadAdminMeta()
@@ -1871,12 +1872,12 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const updateCategory = async () => {
     const nombre = categoryEditName.trim()
     if (!categoryTargetIdValue) {
-      onNotify('Selecciona una categoria para editar.')
+      onNotify('Selecciona una categoría para editar.')
       return
     }
 
     if (!nombre) {
-      onNotify('Ingresa el nuevo nombre de la categoria.')
+      onNotify('Ingresa el nuevo nombre de la categoría.')
       return
     }
 
@@ -1896,10 +1897,10 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
       const data = await response.json()
       if (!response.ok) {
-        throw new Error(data.message || 'No se pudo actualizar la categoria')
+        throw new Error(data.message || 'No se pudo actualizar la categoría')
       }
 
-      onNotify(data.message || 'Categoria actualizada correctamente.')
+      onNotify(data.message || 'Categoría actualizada correctamente.')
       await loadAdminMeta()
     } catch (requestError) {
       onNotify(requestError.message)
@@ -1914,6 +1915,34 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
       (categoria) => String(categoria.id_categoria) === String(value),
     )
     setCategoryEditName(selected?.nombre || '')
+  }
+
+  const categoryControlValue = categoryAction
+    ? categoryAction
+    : adminCategoryFilterValue === 'TODAS'
+      ? CATEGORY_FILTER_ALL_OPTION
+      : `FILTER_${adminCategoryFilterValue}`
+
+  const onCategoryControlChange = (value) => {
+    if (
+      value === CATEGORY_ACTION_ADD ||
+      value === CATEGORY_ACTION_EDIT ||
+      value === CATEGORY_ACTION_DELETE
+    ) {
+      openCategoryAction(value)
+      return
+    }
+
+    setCategoryAction('')
+
+    if (value === CATEGORY_FILTER_ALL_OPTION) {
+      setAdminCategoryFilter('TODAS')
+      return
+    }
+
+    if (value.startsWith('FILTER_')) {
+      setAdminCategoryFilter(value.replace('FILTER_', ''))
+    }
   }
 
   const handleAddToCart = (product) => {
@@ -1947,7 +1976,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     const rating = Number(draft?.rating)
 
     if (!rating || rating < 1 || rating > 5) {
-      onNotify('Selecciona una calificacion entre 1 y 5.')
+      onNotify('Selecciona una calificación entre 1 y 5.')
       return
     }
 
@@ -2124,7 +2153,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   if (loading) {
-    return <p className="status-text">Cargando catalogo...</p>
+    return <p className="status-text">Cargando catálogo...</p>
   }
 
   if (error) {
@@ -2140,8 +2169,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
         </p>
         {featuredCode ? (
           <p className="status-text featured-banner-warning">
-            El cafe destacado <strong>{featuredCode}</strong> no esta disponible por
-            ahora. Prueba con otro producto cuando el catalogo tenga stock.
+            El café destacado <strong>{featuredCode}</strong> no está disponible por
+            ahora. Prueba con otro producto cuando el catálogo tenga stock.
           </p>
         ) : null}
       </section>
@@ -2150,20 +2179,20 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
   return (
     <section>
-      <h2>Catalogo de cafe artesanal</h2>
+      <h2>Catálogo de café artesanal</h2>
       {featuredCode ? (
         <p className="status-text featured-banner">
-          Edicion limitada seleccionada: <strong>{featuredCode}</strong>. Agregala al
+          Edición limitada seleccionada: <strong>{featuredCode}</strong>. Agrégala al
           carrito para continuar con tu pedido.
         </p>
       ) : null}
       {featuredCode && !hasFeaturedMatchVisible ? (
         <p className="status-text featured-banner-warning">
-          No encontramos ese codigo exacto en catalogo. Te mostramos los cafes
+          No encontramos ese código exacto en catálogo. Te mostramos los cafés
           disponibles para que elijas y compres.
         </p>
       ) : null}
-      <div className="catalog-menu" role="tablist" aria-label="Filtros de catalogo">
+      <div className="catalog-menu" role="tablist" aria-label="Filtros de catálogo">
         <button
           className={`catalog-menu-btn ${catalogFilter === 'TODOS' ? 'active' : ''}`}
           type="button"
@@ -2176,7 +2205,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           type="button"
           onClick={() => setCatalogFilter('ARTESANAL')}
         >
-          Cafes artesanales ({filterCounts.ARTESANAL})
+          Cafés artesanales ({filterCounts.ARTESANAL})
         </button>
         <button
           className={`catalog-menu-btn ${catalogFilter === 'LIMITADA' ? 'active' : ''}`}
@@ -2211,34 +2240,27 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 inventario sin crear duplicados.
               </p>
             ) : null}
-            <div className="admin-category-toolbar">
-                <label htmlFor="admin-category-filter">Filtrar por categoría:</label>
+            <div className="admin-category-toolbar admin-category-management">
+              <label htmlFor="category-control-menu">Administrar categorías</label>
               <select
-                id="admin-category-filter"
-                value={adminCategoryFilterValue}
-                onChange={(event) => setAdminCategoryFilter(event.target.value)}
+                id="category-control-menu"
+                value={categoryControlValue}
+                onChange={(event) => onCategoryControlChange(event.target.value)}
               >
-                  <option value="TODAS">Todas las categorías</option>
+                <option value={CATEGORY_FILTER_ALL_OPTION}>Todas las categorías</option>
                 {adminMeta.categorias.map((categoria) => (
-                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
-                    {categoria.nombre}
+                  <option key={categoria.id_categoria} value={`FILTER_${categoria.id_categoria}`}>
+                    Ver: {categoria.nombre}
                   </option>
                 ))}
+                <option value="" disabled>
+                  ▼ Selecciona una acción
+                </option>
+                <option value={CATEGORY_ACTION_ADD}>Agregar categoría</option>
+                <option value={CATEGORY_ACTION_EDIT}>Editar categoría</option>
+                <option value={CATEGORY_ACTION_DELETE}>Eliminar categoría</option>
               </select>
             </div>
-              <div className="span-all admin-category-toolbar admin-category-management">
-                <label htmlFor="category-action-menu">Gestión de categorías:</label>
-                <select
-                  id="category-action-menu"
-                  value={categoryAction}
-                  onChange={(event) => openCategoryAction(event.target.value)}
-                >
-                  <option value="">Selecciona una acción</option>
-                  <option value={CATEGORY_ACTION_ADD}>Agregar categoría</option>
-                  <option value={CATEGORY_ACTION_EDIT}>Editar categoría</option>
-                  <option value={CATEGORY_ACTION_DELETE}>Eliminar categoría</option>
-                </select>
-              </div>
               {categoryAction ? (
                 <div className="span-all category-inline-panel">
                   {categoryAction === CATEGORY_ACTION_ADD ? (
@@ -2551,7 +2573,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
       ) : null}
 
       {visibleProductsByAdminCategory.length === 0 ? (
-        <p className="status-text">No hay productos disponibles en esta seccion.</p>
+        <p className="status-text">No hay productos disponibles en esta sección.</p>
       ) : null}
 
       <div className="product-grid">
@@ -2603,7 +2625,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
             </button>
             {featuredCodeNormalized &&
             normalizeCode(product.codigo) === featuredCodeNormalized ? (
-              <p className="limited-badge">Edicion limitada</p>
+              <p className="limited-badge">Edición limitada</p>
             ) : null}
             <p className="category-tag">{product.categoria}</p>
             <h3>{product.nombre}</h3>
@@ -2614,17 +2636,17 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 <span>
                   {productReviewSummary.count > 0
                     ? `${productReviewSummary.average}/5 · ${productReviewSummary.count} reseñas`
-                    : 'Sin reseñas aun'}
+                    : 'Sin reseñas aún'}
                 </span>
               </div>
             </div>
             <p className={`stock-text ${stockActual === 0 ? 'stock-empty' : ''}`}>
-              {esLimitada ? 'Edicion limitada' : 'Disponibilidad'}: stock{' '}
+              {esLimitada ? 'Edición limitada' : 'Disponibilidad'}: stock{' '}
               <strong>{stockActual}</strong>
             </p>
             <div className="product-review-panel">
               <RatingPicker
-                label="Tu calificacion"
+                label="Tu calificación"
                 value={currentDraft.rating}
                 onChange={(rating) =>
                   updateProductReviewDraft(product.id_producto, 'rating', rating)
@@ -2649,7 +2671,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               </button>
               <ReviewThreadList
                 reviews={productReviews}
-                emptyText="Aun no hay reseñas para este producto."
+                emptyText="Aún no hay reseñas para este producto."
                 isAuthenticated={Boolean(token)}
                 isAdmin={isAdmin}
                 currentUserId={user?.id_usuario}
@@ -2731,7 +2753,7 @@ function Cart({ cartItems, onChangeQuantity, onRemove }) {
   const coffeeUnits = useMemo(() => countCoffeeUnits(cartItems), [cartItems])
 
   if (cartItems.length === 0) {
-    return <p className="status-text">Tu carrito esta vacio.</p>
+    return <p className="status-text">Tu carrito está vacío.</p>
   }
 
   return (
@@ -2869,7 +2891,7 @@ function AdminPendingOrders({ token, onNotify }) {
   return (
     <section className="card admin-orders-panel">
       <div className="admin-orders-head">
-        <h3>Pedidos del administrador por categoria</h3>
+        <h3>Pedidos del administrador por categoría</h3>
         <button className="btn btn-ghost" type="button" onClick={loadAdminOrders}>
           Recargar
         </button>
@@ -2878,7 +2900,7 @@ function AdminPendingOrders({ token, onNotify }) {
       {loading ? <p className="status-text">Cargando pedidos...</p> : null}
 
       {!loading && orders.length === 0 ? (
-        <p className="status-text">No hay pedidos registrados todavia.</p>
+        <p className="status-text">No hay pedidos registrados todavía.</p>
       ) : null}
 
       {!loading && orders.length > 0 ? (
@@ -2893,7 +2915,7 @@ function AdminPendingOrders({ token, onNotify }) {
                 </div>
 
                 {sectionOrders.length === 0 ? (
-                  <p className="status-text">No hay pedidos en esta categoria.</p>
+                  <p className="status-text">No hay pedidos en esta categoría.</p>
                 ) : (
                   <div className="admin-order-list">
                     {sectionOrders.map((order) => (
@@ -2906,9 +2928,9 @@ function AdminPendingOrders({ token, onNotify }) {
                         <p>
                           Cliente: <strong>{order.cliente?.nombres} {order.cliente?.apellidos}</strong>
                         </p>
-                        <p>Telefono: {order.cliente?.telefono || 'No registrado'}</p>
+                        <p>Teléfono: {order.cliente?.telefono || 'No registrado'}</p>
                         <p>Correo: {order.cliente?.correo || 'No registrado'}</p>
-                        <p>Referencia deposito: {order.referencia_deposito || '-'}</p>
+                        <p>Referencia depósito: {order.referencia_deposito || '-'}</p>
                         <p>{formatDeliveryText(order.forma_entrega, order.direccion_entrega)}</p>
                         <p>Total: {currency(Number(order.total) || 0)}</p>
 
@@ -2917,7 +2939,7 @@ function AdminPendingOrders({ token, onNotify }) {
                           <ul>
                             {(order.items || []).map((item) => (
                               <li key={`${order.id_venta}-${item.id_producto}`}>
-                                {item.nombre_producto || `Producto #${item.id_producto}`} ({item.categoria_producto || 'Sin categoria'}) - Cantidad: {item.cantidad}
+                                {item.nombre_producto || `Producto #${item.id_producto}`} ({item.categoria_producto || 'Sin categoría'}) - Cantidad: {item.cantidad}
                               </li>
                             ))}
                           </ul>
@@ -2990,24 +3012,24 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
     event.preventDefault()
     if (cartItems.length === 0) {
       setError('Agrega productos al carrito antes de pagar')
-      onNotify('Tu carrito esta vacio. Agrega productos antes de pagar.')
+      onNotify('Tu carrito está vacío. Agrega productos antes de pagar.')
       return
     }
 
     const coffeeUnits = countCoffeeUnits(cartItems)
     if (coffeeUnits > MAX_COFFEE_UNITS_PER_ORDER) {
       setError(
-        `Solo puedes comprar maximo ${MAX_COFFEE_UNITS_PER_ORDER} cafes por pedido.`,
+        `Solo puedes comprar máximo ${MAX_COFFEE_UNITS_PER_ORDER} cafés por pedido.`,
       )
       onNotify(
-        `Limite excedido: maximo ${MAX_COFFEE_UNITS_PER_ORDER} cafes por pedido.`,
+        `Límite excedido: máximo ${MAX_COFFEE_UNITS_PER_ORDER} cafés por pedido.`,
       )
       return
     }
 
     if (!proofSent) {
       setError('Debes enviar el comprobante por WhatsApp antes de registrar el pedido.')
-      onNotify('Primero envia el comprobante por WhatsApp para continuar.')
+      onNotify('Primero envía el comprobante por WhatsApp para continuar.')
       return
     }
 
@@ -3074,17 +3096,17 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
 
   const whatsappMessage = useMemo(() => {
     if (!lastOrder) {
-      return `Hola, envio mi comprobante de ${getPaymentMethodLabel(paymentMethod).toLowerCase()} para validar mi pedido en Cafe Artesanal Zaruma.`
+      return `Hola, envío mi comprobante de ${getPaymentMethodLabel(paymentMethod).toLowerCase()} para validar mi pedido en Café Artesanal Zaruma.`
     }
 
     return [
-      `Hola, envio mi comprobante de ${getPaymentMethodLabel(lastPaymentMethod).toLowerCase()} para validar mi pedido.`,
+      `Hola, envío mi comprobante de ${getPaymentMethodLabel(lastPaymentMethod).toLowerCase()} para validar mi pedido.`,
       `Pedido: #${lastOrder.id_venta}`,
       `Cliente: ${user?.usuario || 'cliente'}`,
-      `Metodo de pago: ${getPaymentMethodLabel(lastPaymentMethod)}`,
+      `Método de pago: ${getPaymentMethodLabel(lastPaymentMethod)}`,
       `Forma de entrega: ${lastDeliveryMethod === 'ENTREGA_DOMICILIO' ? 'Entrega a domicilio' : 'Retiro en tienda física'}`,
       lastDeliveryMethod === 'ENTREGA_DOMICILIO' && lastDeliveryAddress
-        ? `Direccion: ${lastDeliveryAddress}`
+        ? `Dirección: ${lastDeliveryAddress}`
         : '',
       `Total depositado: ${currency(Number(lastOrder.total) || 0)}`,
       'Adjunto la foto/captura del comprobante en este chat.',
@@ -3109,12 +3131,12 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
       <h2>Finalizar compra</h2>
       <div className="checkout-grid">
         <article className="checkout-panel">
-          <h3>Datos de deposito</h3>
+          <h3>Datos de depósito</h3>
           <p>
-            Metodo seleccionado: <strong>{getPaymentMethodLabel(paymentMethod)}</strong>
+            Método seleccionado: <strong>{getPaymentMethodLabel(paymentMethod)}</strong>
           </p>
           <p>Banco Pichincha - Cuenta corriente 1234567890</p>
-          <p>RUC: 0190000001001 - Cafe Artesanal Zaruma</p>
+          <p>RUC: 0190000001001 - Café Artesanal Zaruma</p>
           <p>IVA 15% incluido en el total.</p>
           <p>
             Subtotal: <strong>{currency(total)}</strong>
@@ -3128,13 +3150,13 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
         </article>
 
         <article className="checkout-panel">
-          <h3>Verificacion con COOFE DRINK</h3>
+          <h3>Verificación con COOFE DRINK</h3>
           <p>
-            Registra tu pedido y luego envia el comprobante por WhatsApp para
+            Registra tu pedido y luego envía el comprobante por WhatsApp para
             validarlo.
           </p>
           <p>
-            COOFE DRINK aprobara la compra y despues se descontara el stock.
+            COOFE DRINK aprobará la compra y después se descontará el stock.
           </p>
           <a
             className="btn btn-whatsapp"
@@ -3145,7 +3167,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
             Enviar comprobante por WhatsApp
           </a>
           <p className="status-text">
-            Paso obligatorio: envia el comprobante antes de registrar el pedido.
+            Paso obligatorio: envía el comprobante antes de registrar el pedido.
           </p>
           <label className="proof-confirm-check">
             <input
@@ -3153,7 +3175,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
               checked={proofSent}
               onChange={(event) => setProofSent(event.target.checked)}
             />
-            Ya envie mi comprobante por WhatsApp
+            Ya envié mi comprobante por WhatsApp
           </label>
         </article>
       </div>
@@ -3164,7 +3186,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           onChange={(event) => setPaymentMethod(event.target.value)}
           required
         >
-          <option value="DEPOSITO_BANCARIO">Deposito bancario</option>
+          <option value="DEPOSITO_BANCARIO">Depósito bancario</option>
           <option value="TRANSFERENCIA_BANCARIA">Transferencia bancaria</option>
         </select>
         <input
@@ -3186,7 +3208,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
         </select>
         {formaEntrega === 'ENTREGA_DOMICILIO' ? (
           <input
-            placeholder="Direccion de entrega"
+            placeholder="Dirección de entrega"
             value={direccionEntrega}
             onChange={(event) => setDireccionEntrega(event.target.value)}
             required
@@ -3204,7 +3226,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
             {loading
               ? 'Procesando...'
               : !proofSent
-                ? 'Envia comprobante para continuar'
+                ? 'Envía comprobante para continuar'
                 : 'Registrar pedido'}
           </button>
         ) : (
@@ -3236,7 +3258,7 @@ function statusLabelByOrderState(order) {
     return 'Rechazado por admin'
   }
 
-  return 'Pendiente de validacion del deposito'
+  return 'Pendiente de validación del depósito'
 }
 
 function MyOrders({ token, onNotify }) {
@@ -3310,7 +3332,7 @@ function MyOrders({ token, onNotify }) {
 
   const clearHistory = async () => {
     const confirmed = window.confirm(
-      'Esto eliminara todo tu historial de pedidos. ¿Deseas continuar?',
+      'Esto eliminará todo tu historial de pedidos. ¿Deseas continuar?',
     )
     if (!confirmed) return
 
@@ -3373,7 +3395,7 @@ function MyOrders({ token, onNotify }) {
       {loading ? <p className="status-text">Cargando tus pedidos...</p> : null}
 
       {!loading && orders.length === 0 ? (
-        <p className="status-text">Aun no registras pedidos.</p>
+        <p className="status-text">Aún no registras pedidos.</p>
       ) : null}
 
       {!loading && orders.length > 0 ? (
@@ -3385,7 +3407,7 @@ function MyOrders({ token, onNotify }) {
                 <span>{formatOrderDate(order.fecha)}</span>
               </div>
               <p>Total: {currency(Number(order.total) || 0)}</p>
-              <p>Referencia deposito: {order.referencia_deposito || '-'}</p>
+              <p>Referencia depósito: {order.referencia_deposito || '-'}</p>
               <p>{formatDeliveryText(order.forma_entrega, order.direccion_entrega)}</p>
               <p className="order-status">{statusLabelByOrderState(order)}</p>
               {order.estado === 'PENDIENTE' ? (
@@ -3459,7 +3481,7 @@ function AdminInventory({ token, onNotify }) {
               <tr>
                 <th>Codigo</th>
                 <th>Producto</th>
-                <th>Categoria</th>
+                <th>Categoría</th>
                 <th>Stock</th>
                 <th>Minimo</th>
                 <th>Unidad</th>
@@ -3631,7 +3653,7 @@ function SiteFooter({ onNotify }) {
             <li><a href="/#sobre-nosotros">Preguntas y respuestas</a></li>
             <li><a href="/#ubicacion">El equipo</a></li>
             <li><a href="https://wa.me/593988062935" target="_blank" rel="noreferrer">Contacto</a></li>
-            <li><a href="/catalogo">Terminos y condiciones</a></li>
+            <li><a href="/catalogo">Términos y condiciones</a></li>
           </ul>
         </section>
 
@@ -3810,7 +3832,7 @@ function App() {
         })
         const data = await response.json()
         if (!response.ok) {
-          throw new Error('Sesion invalida')
+          throw new Error('Sesión inválida')
         }
         setUser(data.user)
       } catch {
@@ -3851,8 +3873,8 @@ function App() {
           const diff = pendingCount - previousCount
           showToast(
             diff === 1
-              ? 'Notificacion: ha llegado un pedido nuevo.'
-              : `Notificacion: han llegado ${diff} pedidos nuevos.`,
+              ? 'Notificación: ha llegado un pedido nuevo.'
+              : `Notificación: han llegado ${diff} pedidos nuevos.`,
           )
           setHasNewRequestAlert(true)
         }
@@ -3914,7 +3936,7 @@ function App() {
 
           if (hasChange) {
             setHasMyOrdersAlert(true)
-            showToast('Notificacion: revisa Mis pedidos.')
+            showToast('Notificación: revisa Mis pedidos.')
           }
         }
 
@@ -3955,7 +3977,7 @@ function App() {
     setHasNewRequestAlert(false)
     setMyOrdersPendingCount(0)
     setHasMyOrdersAlert(false)
-    showToast('Sesion cerrada. Tu carrito se conserva por 2 dias.')
+    showToast('Sesión cerrada. Tu carrito se conserva por 2 días.')
   }
 
   const addToCart = (product) => {
@@ -3966,7 +3988,7 @@ function App() {
       if (isCoffee) {
         const currentCoffeeUnits = countCoffeeUnits(prev)
         if (currentCoffeeUnits + 1 > MAX_COFFEE_UNITS_PER_ORDER) {
-          limitMessage = `Limite alcanzado: maximo ${MAX_COFFEE_UNITS_PER_ORDER} cafes por pedido.`
+          limitMessage = `Límite alcanzado: máximo ${MAX_COFFEE_UNITS_PER_ORDER} cafés por pedido.`
           return prev
         }
       }
@@ -4009,7 +4031,7 @@ function App() {
 
       if (cantidad > maxAllowedForItem) {
         nextQuantity = Math.max(maxAllowedForItem, 1)
-        limitMessage = `Limite alcanzado: maximo ${MAX_COFFEE_UNITS_PER_ORDER} cafes por pedido.`
+        limitMessage = `Límite alcanzado: máximo ${MAX_COFFEE_UNITS_PER_ORDER} cafés por pedido.`
       }
     }
 
@@ -4047,12 +4069,12 @@ function App() {
     const comment = String(appReviewDraft?.comment || '').trim()
 
     if (!token) {
-      showToast('Inicia sesion para enviar una reseña general.')
+      showToast('Inicia sesión para enviar una reseña general.')
       return
     }
 
     if (!rating || rating < 1 || rating > 5) {
-      showToast('Selecciona una calificacion entre 1 y 5.')
+      showToast('Selecciona una calificación entre 1 y 5.')
       return
     }
 
@@ -4260,12 +4282,12 @@ function App() {
           />
           <span className="brand-stack">
             <span className="brand-text">COOFFE DR!NK</span>
-            <span className="brand-subtitle">Cafe artesanal de la provincia de El Oro</span>
+            <span className="brand-subtitle">Café artesanal de la provincia de El Oro</span>
           </span>
         </Link>
         <nav>
           <a href="/#sobre-nosotros">Sobre nosotros</a>
-          <Link to="/catalogo">Catalogo</Link>
+          <Link to="/catalogo">Catálogo</Link>
           {isAdmin ? <Link to="/inventario">Inventario</Link> : null}
           {isAdmin ? <Link to="/ingresos">Ingresos</Link> : null}
           {isAuthenticated && !isAdmin ? (
