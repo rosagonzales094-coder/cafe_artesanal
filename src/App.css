@@ -1192,6 +1192,16 @@ input:focus {
   color: #f7ddaf;
 }
 
+.admin-category-management {
+  margin-bottom: 0.85rem;
+}
+
+.admin-category-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.5rem;
+}
+
 .category-inline-panel {
   border: 1px solid rgba(255, 210, 142, 0.28);
   border-radius: 14px;
@@ -1207,7 +1217,12 @@ input:focus {
 
 .category-inline-actions {
   display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
   gap: 0.55rem;
+}
+
+.category-inline-actions .btn {
+  width: 100%;
 }
 
 .cart-row {

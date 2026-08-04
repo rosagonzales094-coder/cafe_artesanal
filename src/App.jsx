@@ -86,9 +86,14 @@ const SPECIAL_COFFEES = [
 ]
 
 function getProductImageUrl(product, index) {
+  const customImage = String(product?.imagen_url || product?.imagen || '').trim()
   const code = normalizeCode(product?.codigo)
   const name = normalizeText(product?.nombre)
   const category = normalizeText(product?.categoria)
+
+  if (customImage) {
+    return customImage
+  }
 
   if (code && PRODUCT_IMAGE_BY_CODE[code]) {
     return PRODUCT_IMAGE_BY_CODE[code]
@@ -209,6 +214,7 @@ const INITIAL_ADMIN_PRODUCT_FORM = {
   codigo: '',
   nombre: '',
   descripcion: '',
+  imagen_url: '',
   precio_compra: '',
   precio: '',
   stock: '',
@@ -699,6 +705,7 @@ function mapProductToAdminForm(product) {
     codigo: product.codigo || '',
     nombre: product.nombre || '',
     descripcion: product.descripcion || '',
+    imagen_url: product.imagen_url || '',
     precio_compra: String(product.precio_compra ?? ''),
     precio: String(product.precio ?? ''),
     stock: String(product.stock ?? ''),
@@ -1328,28 +1335,21 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const onAdminChange = (event) => {
     const { name, value } = event.target
 
-    if (name === 'id_categoria') {
-      if (
-        value === CATEGORY_ACTION_ADD ||
-        value === CATEGORY_ACTION_EDIT ||
-        value === CATEGORY_ACTION_DELETE
-      ) {
-        setCategoryAction(value)
-
-        if (!categoryTargetIdValue && adminMeta.categorias.length > 0) {
-          const firstCategory = adminMeta.categorias[0]
-          setCategoryTargetId(String(firstCategory.id_categoria))
-          setCategoryEditName(firstCategory.nombre)
-        }
-
-        setAdminForm((prev) => ({ ...prev, id_categoria: '' }))
-        return
-      }
-
-      setCategoryAction('')
-    }
-
     setAdminForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const openCategoryAction = (action) => {
+    setCategoryAction((prev) => (prev === action ? '' : action))
+
+    if (
+      (action === CATEGORY_ACTION_EDIT || action === CATEGORY_ACTION_DELETE) &&
+      !categoryTargetIdValue &&
+      adminMeta.categorias.length > 0
+    ) {
+      const firstCategory = adminMeta.categorias[0]
+      setCategoryTargetId(String(firstCategory.id_categoria))
+      setCategoryEditName(firstCategory.nombre)
+    }
   }
 
   const resetAdminForm = () => {
@@ -1854,18 +1854,18 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
             <h3>{editingProductId ? 'Editar producto' : 'Agregar nuevo producto'}</h3>
             {!editingProductId ? (
               <p className="status-text admin-status">
-                Si ingresas un codigo existente, el sistema sumara el stock al
-                inventario automaticamente.
+                Si ingresas un código existente, el sistema suma el stock al
+                inventario sin crear duplicados.
               </p>
             ) : null}
             <div className="admin-category-toolbar">
-              <label htmlFor="admin-category-filter">Categoria para actualizar:</label>
+                <label htmlFor="admin-category-filter">Filtrar por categoría:</label>
               <select
                 id="admin-category-filter"
                 value={adminCategoryFilterValue}
                 onChange={(event) => setAdminCategoryFilter(event.target.value)}
               >
-                <option value="TODAS">Todas las categorias</option>
+                  <option value="TODAS">Todas las categorías</option>
                 {adminMeta.categorias.map((categoria) => (
                   <option key={categoria.id_categoria} value={categoria.id_categoria}>
                     {categoria.nombre}
@@ -1873,210 +1873,236 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 ))}
               </select>
             </div>
+              <div className="span-all admin-category-toolbar admin-category-management">
+                <label>Gestión de categorías:</label>
+                <div className="admin-category-actions">
+                  <button
+                    className={`btn ${categoryAction === CATEGORY_ACTION_ADD ? 'btn-solid' : 'btn-ghost'}`}
+                    type="button"
+                    onClick={() => openCategoryAction(CATEGORY_ACTION_ADD)}
+                  >
+                    Registrar categoría
+                  </button>
+                  <button
+                    className={`btn ${categoryAction === CATEGORY_ACTION_EDIT ? 'btn-solid' : 'btn-ghost'}`}
+                    type="button"
+                    onClick={() => openCategoryAction(CATEGORY_ACTION_EDIT)}
+                  >
+                    Editar categoría
+                  </button>
+                  <button
+                    className={`btn ${categoryAction === CATEGORY_ACTION_DELETE ? 'btn-solid' : 'btn-ghost'}`}
+                    type="button"
+                    onClick={() => openCategoryAction(CATEGORY_ACTION_DELETE)}
+                  >
+                    Eliminar categoría
+                  </button>
+                </div>
+              </div>
+              {categoryAction ? (
+                <div className="span-all category-inline-panel">
+                  {categoryAction === CATEGORY_ACTION_ADD ? (
+                    <>
+                      <h4>Registrar categoría</h4>
+                      <div className="category-inline-actions">
+                        <input
+                          type="text"
+                          placeholder="Nombre de categoría"
+                          value={newCategoryName}
+                          onChange={(event) => setNewCategoryName(event.target.value)}
+                        />
+                        <button
+                          className="btn btn-solid"
+                          type="button"
+                          onClick={createCategory}
+                          disabled={categorySaving}
+                        >
+                          Guardar categoría
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {categoryAction === CATEGORY_ACTION_EDIT ? (
+                    <>
+                      <h4>Editar categoría</h4>
+                      <div className="category-inline-actions">
+                        <select
+                          value={categoryTargetIdValue}
+                          onChange={(event) => onCategoryTargetChange(event.target.value)}
+                        >
+                          <option value="">Selecciona una categoría</option>
+                          {adminMeta.categorias.map((categoria) => (
+                            <option
+                              key={categoria.id_categoria}
+                              value={categoria.id_categoria}
+                            >
+                              {categoria.nombre}
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Nuevo nombre"
+                          value={categoryEditName}
+                          onChange={(event) => setCategoryEditName(event.target.value)}
+                        />
+                        <button
+                          className="btn btn-solid"
+                          type="button"
+                          onClick={updateCategory}
+                          disabled={categorySaving}
+                        >
+                          Actualizar categoría
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+
+                  {categoryAction === CATEGORY_ACTION_DELETE ? (
+                    <>
+                      <h4>Eliminar categoría</h4>
+                      <div className="category-inline-actions">
+                        <select
+                          value={categoryTargetIdValue}
+                          onChange={(event) => onCategoryTargetChange(event.target.value)}
+                        >
+                          <option value="">Selecciona una categoría</option>
+                          {adminMeta.categorias.map((categoria) => (
+                            <option
+                              key={categoria.id_categoria}
+                              value={categoria.id_categoria}
+                            >
+                              {categoria.nombre}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          className="btn btn-danger"
+                          type="button"
+                          onClick={removeCategory}
+                          disabled={categorySaving}
+                        >
+                          Eliminar categoría
+                        </button>
+                      </div>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
             <form
               ref={adminFormRef}
               className="form-grid two-cols"
               onSubmit={onAdminSubmit}
             >
-            <select
-              name="id_categoria"
-              value={adminForm.id_categoria}
-              onChange={onAdminChange}
-              required
-            >
-              <option value="">Categoria</option>
-              {adminMeta.categorias.map((categoria) => (
-                <option key={categoria.id_categoria} value={categoria.id_categoria}>
-                  {categoria.nombre}
-                </option>
-              ))}
-              <option value="" disabled>
-                -------- Gestion de categorias --------
-              </option>
-              <option value={CATEGORY_ACTION_ADD}>Registrar categoria...</option>
-              <option value={CATEGORY_ACTION_EDIT}>Editar categoria...</option>
-              <option value={CATEGORY_ACTION_DELETE}>Eliminar categoria...</option>
-            </select>
+              <select
+                name="id_categoria"
+                value={adminForm.id_categoria}
+                onChange={onAdminChange}
+                required
+              >
+                <option value="">Categoría</option>
+                {adminMeta.categorias.map((categoria) => (
+                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                    {categoria.nombre}
+                  </option>
+                ))}
+              </select>
 
-            {categoryAction ? (
-              <div className="span-all category-inline-panel">
-                {categoryAction === CATEGORY_ACTION_ADD ? (
-                  <>
-                    <h4>Registrar categoria</h4>
-                    <div className="category-inline-actions">
-                      <input
-                        type="text"
-                        placeholder="Nombre de categoria"
-                        value={newCategoryName}
-                        onChange={(event) => setNewCategoryName(event.target.value)}
-                      />
-                      <button
-                        className="btn btn-solid"
-                        type="button"
-                        onClick={createCategory}
-                        disabled={categorySaving}
-                      >
-                        Guardar categoria
-                      </button>
-                    </div>
-                  </>
-                ) : null}
+              <select
+                name="id_proveedor"
+                value={adminForm.id_proveedor}
+                onChange={onAdminChange}
+                required
+              >
+                <option value="">Proveedor</option>
+                {adminMeta.proveedores.map((proveedor) => (
+                  <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
+                    {proveedor.empresa}
+                  </option>
+                ))}
+              </select>
 
-                {categoryAction === CATEGORY_ACTION_EDIT ? (
-                  <>
-                    <h4>Editar categoria</h4>
-                    <div className="category-inline-actions">
-                      <select
-                        value={categoryTargetIdValue}
-                        onChange={(event) => onCategoryTargetChange(event.target.value)}
-                      >
-                        <option value="">Selecciona una categoria</option>
-                        {adminMeta.categorias.map((categoria) => (
-                          <option
-                            key={categoria.id_categoria}
-                            value={categoria.id_categoria}
-                          >
-                            {categoria.nombre}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="text"
-                        placeholder="Nuevo nombre"
-                        value={categoryEditName}
-                        onChange={(event) => setCategoryEditName(event.target.value)}
-                      />
-                      <button
-                        className="btn btn-solid"
-                        type="button"
-                        onClick={updateCategory}
-                        disabled={categorySaving}
-                      >
-                        Actualizar categoria
-                      </button>
-                    </div>
-                  </>
-                ) : null}
+              <input
+                name="codigo"
+                placeholder="Código"
+                value={adminForm.codigo}
+                onChange={onAdminChange}
+                required
+              />
+              <input
+                name="nombre"
+                placeholder="Nombre"
+                value={adminForm.nombre}
+                onChange={onAdminChange}
+                required
+              />
+              <input
+                className="span-all"
+                name="imagen_url"
+                placeholder="Imagen del producto (URL o ruta)"
+                value={adminForm.imagen_url}
+                onChange={onAdminChange}
+              />
+              <input
+                name="precio_compra"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Precio de compra"
+                value={adminForm.precio_compra}
+                onChange={onAdminChange}
+                required
+              />
+              <input
+                name="precio"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Precio de venta"
+                value={adminForm.precio}
+                onChange={onAdminChange}
+                required
+              />
+              <input
+                name="stock"
+                type="number"
+                min="0"
+                placeholder="Stock"
+                value={adminForm.stock}
+                onChange={onAdminChange}
+                required
+              />
+              <input
+                name="stock_minimo"
+                type="number"
+                min="0"
+                placeholder="Stock mínimo"
+                value={adminForm.stock_minimo}
+                onChange={onAdminChange}
+                required
+              />
+              <input
+                name="unidad"
+                placeholder="Unidad"
+                value={adminForm.unidad}
+                onChange={onAdminChange}
+              />
+              <select name="estado" value={adminForm.estado} onChange={onAdminChange}>
+                <option value="ACTIVO">ACTIVO</option>
+                <option value="INACTIVO">INACTIVO</option>
+              </select>
+              <input
+                className="span-all"
+                name="descripcion"
+                placeholder="Descripción"
+                value={adminForm.descripcion}
+                onChange={onAdminChange}
+              />
 
-                {categoryAction === CATEGORY_ACTION_DELETE ? (
-                  <>
-                    <h4>Eliminar categoria</h4>
-                    <div className="category-inline-actions">
-                      <select
-                        value={categoryTargetIdValue}
-                        onChange={(event) => onCategoryTargetChange(event.target.value)}
-                      >
-                        <option value="">Selecciona una categoria</option>
-                        {adminMeta.categorias.map((categoria) => (
-                          <option
-                            key={categoria.id_categoria}
-                            value={categoria.id_categoria}
-                          >
-                            {categoria.nombre}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        className="btn btn-danger"
-                        type="button"
-                        onClick={removeCategory}
-                        disabled={categorySaving}
-                      >
-                        Eliminar categoria
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
-
-            <select
-              name="id_proveedor"
-              value={adminForm.id_proveedor}
-              onChange={onAdminChange}
-              required
-            >
-              <option value="">Proveedor</option>
-              {adminMeta.proveedores.map((proveedor) => (
-                <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
-                  {proveedor.empresa}
-                </option>
-              ))}
-            </select>
-
-            <input
-              name="codigo"
-              placeholder="Codigo"
-              value={adminForm.codigo}
-              onChange={onAdminChange}
-              required
-            />
-            <input
-              name="nombre"
-              placeholder="Nombre"
-              value={adminForm.nombre}
-              onChange={onAdminChange}
-              required
-            />
-            <input
-              name="precio_compra"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Precio compra"
-              value={adminForm.precio_compra}
-              onChange={onAdminChange}
-              required
-            />
-            <input
-              name="precio"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="Precio venta"
-              value={adminForm.precio}
-              onChange={onAdminChange}
-              required
-            />
-            <input
-              name="stock"
-              type="number"
-              min="0"
-              placeholder="Stock"
-              value={adminForm.stock}
-              onChange={onAdminChange}
-              required
-            />
-            <input
-              name="stock_minimo"
-              type="number"
-              min="0"
-              placeholder="Stock minimo"
-              value={adminForm.stock_minimo}
-              onChange={onAdminChange}
-              required
-            />
-            <input
-              name="unidad"
-              placeholder="Unidad"
-              value={adminForm.unidad}
-              onChange={onAdminChange}
-            />
-            <select name="estado" value={adminForm.estado} onChange={onAdminChange}>
-              <option value="ACTIVO">ACTIVO</option>
-              <option value="INACTIVO">INACTIVO</option>
-            </select>
-            <input
-              className="span-all"
-              name="descripcion"
-              placeholder="Descripcion"
-              value={adminForm.descripcion}
-              onChange={onAdminChange}
-            />
-
-            {adminMessage ? (
-              <p className="span-all status-text admin-status">{adminMessage}</p>
-            ) : null}
+              {adminMessage ? (
+                <p className="span-all status-text admin-status">{adminMessage}</p>
+              ) : null}
 
               <button className="btn btn-solid" type="submit" disabled={adminSaving}>
                 {adminSaving
@@ -2091,7 +2117,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                   type="button"
                   onClick={resetAdminForm}
                 >
-                  Cancelar edicion
+                  Cancelar edición
                 </button>
               ) : null}
             </form>

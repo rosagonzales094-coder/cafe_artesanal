@@ -142,6 +142,8 @@ CREATE TABLE productos(
 
     descripcion TEXT,
 
+    imagen_url VARCHAR(255),
+
     precio_compra DECIMAL(10,2) NOT NULL,
 
     precio_venta DECIMAL(10,2) NOT NULL,
