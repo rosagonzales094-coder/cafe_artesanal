@@ -85,6 +85,15 @@ const SPECIAL_COFFEES = [
   },
 ]
 
+const PRODUCT_UNIT_OPTIONS = [
+  { value: 'Bolsa', label: 'Bolsa' },
+  { value: 'Unidad', label: 'Unidad' },
+  { value: 'Kilogramo', label: 'Kilogramo (kg)' },
+  { value: 'Gramo', label: 'Gramo (g)' },
+  { value: 'Caja', label: 'Caja' },
+  { value: 'Paquete', label: 'Paquete' },
+]
+
 function getProductImageUrl(product, index) {
   const customImage = String(product?.imagen_url || product?.imagen || '').trim()
   const code = normalizeCode(product?.codigo)
@@ -219,8 +228,8 @@ const INITIAL_ADMIN_PRODUCT_FORM = {
   precio: '',
   stock: '',
   stock_minimo: '5',
-  unidad: 'Bolsa',
-  estado: 'ACTIVO',
+  unidad: '',
+  estado: '',
 }
 
 const CATEGORY_ACTION_ADD = '__CATEGORY_ACTION_ADD__'
@@ -710,8 +719,8 @@ function mapProductToAdminForm(product) {
     precio: String(product.precio ?? ''),
     stock: String(product.stock ?? ''),
     stock_minimo: String(product.stock_minimo ?? '5'),
-    unidad: product.unidad || 'Bolsa',
-    estado: product.estado || 'ACTIVO',
+    unidad: product.unidad || '',
+    estado: product.estado || '',
   }
 }
 
@@ -1116,6 +1125,274 @@ function Register({ onRegister, onNotify }) {
         >
           {loading ? 'Creando cuenta...' : 'Registrarme'}
         </button>
+      </form>
+    </section>
+  )
+}
+
+function AddProductPage({ token, onNotify }) {
+  const navigate = useNavigate()
+  const [adminMeta, setAdminMeta] = useState({ categorias: [], proveedores: [] })
+  const [form, setForm] = useState(INITIAL_ADMIN_PRODUCT_FORM)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+  const imageInputRef = useRef(null)
+
+  const previewImageUrl = form.imagen_url.trim() || PRODUCT_IMAGE_FALLBACKS[0]
+
+  const loadAdminMeta = useCallback(async () => {
+    const response = await fetch(`${API_URL}/products/meta`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await response.json()
+    if (!response.ok) {
+      throw new Error(data.message || 'No se pudo cargar categorias y proveedores')
+    }
+
+    setAdminMeta({
+      categorias: data.categorias || [],
+      proveedores: data.proveedores || [],
+    })
+  }, [token])
+
+  useEffect(() => {
+    async function run() {
+      try {
+        await loadAdminMeta()
+      } catch (requestError) {
+        onNotify(requestError.message)
+      }
+    }
+
+    run()
+  }, [loadAdminMeta, onNotify])
+
+  const onChange = (event) => {
+    const { name, value } = event.target
+    setForm((prev) => ({ ...prev, [name]: value }))
+  }
+
+  const goBackToCatalog = () => {
+    navigate('/catalogo')
+  }
+
+  const clearImage = () => {
+    setForm((prev) => ({ ...prev, imagen_url: '' }))
+    window.requestAnimationFrame(() => {
+      imageInputRef.current?.focus()
+    })
+  }
+
+  const onSubmit = async (event) => {
+    event.preventDefault()
+    setMessage('')
+    setSaving(true)
+
+    try {
+      const response = await fetch(`${API_URL}/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo crear el producto')
+      }
+
+      const successMessage = data.message || 'Producto creado correctamente'
+      setMessage(successMessage)
+      onNotify(successMessage)
+      navigate('/catalogo')
+    } catch (requestError) {
+      setMessage(requestError.message)
+      onNotify(requestError.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="card admin-panel admin-create-page">
+      <div className="admin-page-head">
+        <button className="btn btn-ghost" type="button" onClick={goBackToCatalog}>
+          Regresar al catálogo
+        </button>
+        <div>
+          <h2>Agregar producto</h2>
+          <p>Completa los datos y guarda el nuevo producto en el inventario.</p>
+        </div>
+      </div>
+
+      <form className="admin-edit-layout" onSubmit={onSubmit}>
+        <div className="admin-edit-main">
+          <section className="admin-edit-card">
+            <div className="admin-edit-card-header">
+              <h4>Información general</h4>
+              <p>Selecciona la categoría, el proveedor y los datos básicos.</p>
+            </div>
+            <div className="admin-edit-grid">
+              <select name="id_categoria" value={form.id_categoria} onChange={onChange} required>
+                <option value="">Categoría</option>
+                {adminMeta.categorias.map((categoria) => (
+                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                    {categoria.nombre}
+                  </option>
+                ))}
+              </select>
+
+              <select name="id_proveedor" value={form.id_proveedor} onChange={onChange} required>
+                <option value="">Proveedor</option>
+                {adminMeta.proveedores.map((proveedor) => (
+                  <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
+                    {proveedor.empresa}
+                  </option>
+                ))}
+              </select>
+
+              <input
+                name="codigo"
+                placeholder="Código del producto"
+                value={form.codigo}
+                onChange={onChange}
+                required
+              />
+              <input
+                name="nombre"
+                placeholder="Nombre del producto"
+                value={form.nombre}
+                onChange={onChange}
+                required
+              />
+              <textarea
+                className="span-all"
+                name="descripcion"
+                placeholder="Descripción"
+                rows="3"
+                value={form.descripcion}
+                onChange={onChange}
+              />
+            </div>
+          </section>
+
+          <section className="admin-edit-card">
+            <div className="admin-edit-card-header">
+              <h4>Precios</h4>
+              <p>Define el costo y el precio de venta.</p>
+            </div>
+            <div className="admin-edit-grid">
+              <input
+                name="precio_compra"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Precio de compra"
+                value={form.precio_compra}
+                onChange={onChange}
+                required
+              />
+              <input
+                name="precio"
+                type="number"
+                step="0.01"
+                min="0"
+                placeholder="Precio de venta"
+                value={form.precio}
+                onChange={onChange}
+                required
+              />
+            </div>
+          </section>
+
+          <section className="admin-edit-card">
+            <div className="admin-edit-card-header">
+              <h4>Inventario y presentación</h4>
+              <p>Elige la unidad de venta y define las existencias.</p>
+            </div>
+            <div className="admin-edit-grid">
+              <input
+                name="stock"
+                type="number"
+                min="0"
+                placeholder="Cantidad disponible"
+                value={form.stock}
+                onChange={onChange}
+                required
+              />
+              <input
+                name="stock_minimo"
+                type="number"
+                min="0"
+                placeholder="Stock mínimo"
+                value={form.stock_minimo}
+                onChange={onChange}
+                required
+              />
+              <select name="unidad" value={form.unidad} onChange={onChange} required>
+                <option value="">Unidad de venta</option>
+                {PRODUCT_UNIT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </section>
+        </div>
+
+        <aside className="admin-edit-side">
+          <section className="admin-edit-card admin-image-card">
+            <div className="admin-edit-card-header">
+              <h4>Imagen del producto</h4>
+              <p>Agrega una ruta o URL de imagen para mostrarla en el catálogo.</p>
+            </div>
+            <div className="image-preview-panel">
+              <img src={previewImageUrl} alt="Vista previa del producto" />
+            </div>
+            <div className="admin-image-actions">
+              <button className="btn btn-ghost" type="button" onClick={() => imageInputRef.current?.focus()}>
+                Cambiar imagen
+              </button>
+              <button className="btn btn-danger" type="button" onClick={clearImage} disabled={!form.imagen_url.trim()}>
+                Eliminar
+              </button>
+            </div>
+            <input
+              ref={imageInputRef}
+              className="span-all"
+              name="imagen_url"
+              placeholder="Imagen del producto (URL o ruta)"
+              value={form.imagen_url}
+              onChange={onChange}
+            />
+          </section>
+
+          <section className="admin-edit-card admin-state-card">
+            <div className="admin-edit-card-header">
+              <h4>Estado</h4>
+              <p>Elige manualmente si el producto estará visible o no.</p>
+            </div>
+            <select name="estado" value={form.estado} onChange={onChange} required>
+              <option value="">Estado</option>
+              <option value="ACTIVO">Producto disponible</option>
+              <option value="INACTIVO">Producto no disponible</option>
+            </select>
+          </section>
+        </aside>
+
+        {message ? <p className="span-all status-text admin-status">{message}</p> : null}
+
+        <div className="span-all admin-edit-actions">
+          <button className="btn btn-solid" type="submit" disabled={saving}>
+            {saving ? 'Guardando...' : 'Guardar cambios'}
+          </button>
+          <button className="btn btn-ghost" type="button" onClick={goBackToCatalog}>
+            Cancelar
+          </button>
+        </div>
       </form>
     </section>
   )
@@ -1991,11 +2268,12 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                   ) : null}
                 </div>
               ) : null}
-            <form
-              ref={adminFormRef}
-              className="admin-edit-layout"
-              onSubmit={onAdminSubmit}
-            >
+            {editingProductId ? (
+              <form
+                ref={adminFormRef}
+                className="admin-edit-layout"
+                onSubmit={onAdminSubmit}
+              >
               <div className="admin-edit-main">
                 <section className="admin-edit-card">
                   <div className="admin-edit-card-header">
@@ -2109,12 +2387,19 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                       onChange={onAdminChange}
                       required
                     />
-                    <input
+                    <select
                       name="unidad"
-                      placeholder="Unidad de venta"
                       value={adminForm.unidad}
                       onChange={onAdminChange}
-                    />
+                      required
+                    >
+                      <option value="">Unidad de venta</option>
+                      {PRODUCT_UNIT_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                   </div>
                 </section>
               </div>
@@ -2171,21 +2456,25 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 <button className="btn btn-solid" type="submit" disabled={adminSaving}>
                   {adminSaving
                     ? 'Guardando...'
-                    : editingProductId
-                      ? 'Guardar cambios'
-                      : 'Agregar al inventario'}
+                    : 'Guardar cambios'}
                 </button>
-                {editingProductId ? (
-                  <button
-                    className="btn btn-ghost"
-                    type="button"
-                    onClick={resetAdminForm}
-                  >
-                    Cancelar
-                  </button>
-                ) : null}
+                <button className="btn btn-ghost" type="button" onClick={resetAdminForm}>
+                  Cancelar edición
+                </button>
               </div>
-            </form>
+              </form>
+            ) : (
+              <div className="admin-create-cta card">
+                <h4>Crear un nuevo producto</h4>
+                <p>
+                  Para agregar un producto nuevo, usa la página separada de administración.
+                  Así el catálogo queda más ordenado.
+                </p>
+                <Link className="btn btn-solid" to="/admin/productos/nuevo">
+                  Ir a agregar producto
+                </Link>
+              </div>
+            )}
           </section>
         </>
       ) : null}
@@ -4093,6 +4382,18 @@ function App() {
               <ProtectedRoute isAuthenticated={isAuthenticated}>
                 {isAdmin ? (
                   <AdminRevenueSummary token={token} onNotify={showToast} />
+                ) : (
+                  <Navigate to="/catalogo" replace />
+                )}
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/productos/nuevo"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated}>
+                {isAdmin ? (
+                  <AddProductPage token={token} onNotify={showToast} />
                 ) : (
                   <Navigate to="/catalogo" replace />
                 )}

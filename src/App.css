@@ -1294,6 +1294,46 @@ input:focus {
   min-width: 180px;
 }
 
+.admin-create-cta {
+  display: grid;
+  gap: 0.6rem;
+  margin-top: 0.9rem;
+  border: 1px dashed rgba(255, 210, 142, 0.34);
+  padding: 1rem;
+  background: rgba(34, 16, 8, 0.36);
+}
+
+.admin-create-cta h4 {
+  margin: 0;
+  color: #ffe8be;
+  font-family: var(--font-title);
+}
+
+.admin-create-cta p {
+  margin: 0;
+  color: #ddbe93;
+}
+
+.admin-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.admin-page-head h2 {
+  margin: 0;
+  font-family: var(--font-title);
+  color: #ffefcf;
+}
+
+.admin-page-head p {
+  margin: 0.18rem 0 0;
+  color: #d9b98a;
+}
+
 .category-inline-panel {
   border: 1px solid rgba(255, 210, 142, 0.28);
   border-radius: 14px;

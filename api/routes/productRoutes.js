@@ -217,11 +217,8 @@ function sanitizeProductPayload(body) {
     precio_venta: parseNumber(body.precio),
     stock: parseNumber(body.stock),
     stock_minimo: parseNumber(body.stock_minimo || 5, 5),
-    unidad: String(body.unidad || 'Unidad').trim(),
-    estado:
-      String(body.estado || 'ACTIVO').trim().toUpperCase() === 'INACTIVO'
-        ? 'INACTIVO'
-        : 'ACTIVO',
+    unidad: String(body.unidad || '').trim(),
+    estado: String(body.estado || '').trim().toUpperCase(),
   }
 
   return payload
@@ -234,6 +231,14 @@ function validateProductPayload(payload) {
 
   if (!payload.codigo || !payload.nombre) {
     return 'Codigo y nombre son obligatorios'
+  }
+
+  if (!payload.unidad) {
+    return 'Selecciona una unidad de venta'
+  }
+
+  if (payload.estado !== 'ACTIVO' && payload.estado !== 'INACTIVO') {
+    return 'Selecciona el estado del producto'
   }
 
   if (payload.precio_compra < 0 || payload.precio_venta < 0) {
@@ -345,7 +350,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
           'precio_venta = ?',
           'stock_minimo = ?',
           'unidad = ?',
-          "estado = 'ACTIVO'",
+          'estado = ?',
         ]
         const updateValues = [
           nuevoStock,
@@ -353,6 +358,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
           payload.precio_venta,
           payload.stock_minimo,
           payload.unidad || 'Unidad',
+          payload.estado,
         ]
 
         if (hasImageColumn && imageUrl) {
