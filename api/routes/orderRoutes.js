@@ -21,6 +21,75 @@ function normalizeText(value) {
     .toLowerCase()
 }
 
+function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
+  if (formaEntrega !== 'ENTREGA_DOMICILIO') {
+    return {
+      fee: 0,
+      distanceLabel: 'Sin envío',
+    }
+  }
+
+  const provincia = normalizeText(provinciaEntrega)
+  const ciudad = normalizeText(ciudadEntrega)
+
+  if (ciudad.includes('zaruma')) {
+    return {
+      fee: 2.5,
+      distanceLabel: 'Cerca de Zaruma',
+    }
+  }
+
+  if (provincia.includes('el oro')) {
+    if (
+      ciudad.includes('portovelo') ||
+      ciudad.includes('pinas') ||
+      ciudad.includes('atahualpa')
+    ) {
+      return {
+        fee: 3.5,
+        distanceLabel: 'Distancia media desde Zaruma',
+      }
+    }
+
+    if (
+      ciudad.includes('machala') ||
+      ciudad.includes('pasaje') ||
+      ciudad.includes('santa rosa') ||
+      ciudad.includes('huaquillas') ||
+      ciudad.includes('arenillas')
+    ) {
+      return {
+        fee: 5,
+        distanceLabel: 'Lejos dentro de El Oro',
+      }
+    }
+
+    return {
+      fee: 4.5,
+      distanceLabel: 'Distancia media dentro de El Oro',
+    }
+  }
+
+  if (provincia.includes('loja') || provincia.includes('azuay')) {
+    return {
+      fee: 6.5,
+      distanceLabel: 'Provincia vecina de Zaruma',
+    }
+  }
+
+  if (provincia.includes('zamora chinchipe') || provincia.includes('canar')) {
+    return {
+      fee: 7.5,
+      distanceLabel: 'Provincia más lejana',
+    }
+  }
+
+  return {
+    fee: 9.5,
+    distanceLabel: 'Envío de larga distancia',
+  }
+}
+
 function isCoffeeForOrderLimit(product) {
   const code = String(product?.codigo || '').trim().toUpperCase()
   const category = normalizeText(product?.categoria)
@@ -33,8 +102,21 @@ function isCoffeeForOrderLimit(product) {
 }
 
 router.post('/', requireAuth, async (req, res) => {
-  const { items, metodo_pago, referencia_deposito, forma_entrega, direccion_entrega } = req.body
+  const {
+    items,
+    metodo_pago,
+    referencia_deposito,
+    forma_entrega,
+    direccion_entrega,
+    provincia_entrega,
+    ciudad_entrega,
+    sector_entrega,
+  } = req.body
   const referenciaNormalizada = String(referencia_deposito || '').trim()
+  const provinciaEntrega = String(provincia_entrega || '').trim()
+  const ciudadEntrega = String(ciudad_entrega || '').trim()
+  const sectorEntrega = String(sector_entrega || '').trim()
+  const direccionEntrega = String(direccion_entrega || '').trim()
 
   if (!Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: 'Debes enviar productos para comprar' })
@@ -52,9 +134,12 @@ router.post('/', requireAuth, async (req, res) => {
     })
   }
 
-  if (forma_entrega === 'ENTREGA_DOMICILIO' && !String(direccion_entrega || '').trim()) {
+  if (
+    forma_entrega === 'ENTREGA_DOMICILIO' &&
+    (!provinciaEntrega || !ciudadEntrega || !sectorEntrega || !direccionEntrega)
+  ) {
     return res.status(400).json({
-      message: 'Ingresa la dirección de entrega para envío a domicilio',
+      message: 'Completa provincia, ciudad, sector y dirección para envío a domicilio',
     })
   }
 
@@ -121,7 +206,13 @@ router.post('/', requireAuth, async (req, res) => {
 
     const total = Number(subtotal.toFixed(2))
     const iva = Number((subtotal * 0.15).toFixed(2))
-    const totalConIva = Number((subtotal + iva).toFixed(2))
+    const deliveryQuote = getDeliveryQuote(forma_entrega, provinciaEntrega, ciudadEntrega)
+    const costoEnvio = Number(deliveryQuote.fee || 0)
+    const totalConIva = Number((subtotal + iva + costoEnvio).toFixed(2))
+    const direccionEntregaCompleta =
+      forma_entrega === 'ENTREGA_DOMICILIO'
+        ? `${provinciaEntrega}, ${ciudadEntrega}, ${sectorEntrega}, ${direccionEntrega}`
+        : ''
 
     const [saleResult] = await connection.query(
       `INSERT INTO ventas (id_cliente, id_usuario, subtotal, iva, descuento, total, estado)
@@ -172,12 +263,17 @@ router.post('/', requireAuth, async (req, res) => {
       id_usuario: req.user.id_usuario,
       subtotal: total,
       iva,
+      costo_envio: costoEnvio,
       total: totalConIva,
       estado: 'PENDIENTE',
       metodo_pago: metodo_pago,
       referencia_deposito: referenciaNormalizada,
       forma_entrega,
-      direccion_entrega: String(direccion_entrega || '').trim(),
+      provincia_entrega: provinciaEntrega,
+      ciudad_entrega: ciudadEntrega,
+      sector_entrega: sectorEntrega,
+      direccion_entrega: direccionEntregaCompleta,
+      distancia_envio: deliveryQuote.distanceLabel,
       items: pendingItems,
       fecha: new Date().toISOString(),
     })
@@ -190,9 +286,11 @@ router.post('/', requireAuth, async (req, res) => {
         id_venta: saleResult.insertId,
         subtotal: total,
         iva,
+        costo_envio: costoEnvio,
         total: totalConIva,
         metodo_pago: paymentMethodName,
         forma_entrega,
+        distancia_envio: deliveryQuote.distanceLabel,
       },
     })
   } catch (error) {

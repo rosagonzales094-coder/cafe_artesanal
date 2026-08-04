@@ -1506,6 +1506,24 @@ input:focus {
   accent-color: #f4a84f;
 }
 
+.delivery-address-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.72rem;
+}
+
+.delivery-field {
+  display: grid;
+  gap: 0.35rem;
+  color: #f6ddaf;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.delivery-field-full {
+  grid-column: 1 / -1;
+}
+
 .checkout-next-step {
   margin-top: 0.9rem;
 }
@@ -1964,6 +1982,10 @@ input:focus {
   }
 
   .checkout-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .delivery-address-grid {
     grid-template-columns: 1fr;
   }
 

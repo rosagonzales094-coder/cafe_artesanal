@@ -768,6 +768,83 @@ function formatDeliveryText(formaEntrega, direccionEntrega) {
   return 'Retiro en tienda física'
 }
 
+function normalizeLocationValue(value) {
+  return String(value || '')
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
+  if (formaEntrega !== 'ENTREGA_DOMICILIO') {
+    return {
+      fee: 0,
+      distanceLabel: 'Sin envío',
+    }
+  }
+
+  const provincia = normalizeLocationValue(provinciaEntrega)
+  const ciudad = normalizeLocationValue(ciudadEntrega)
+
+  if (ciudad.includes('zaruma')) {
+    return {
+      fee: 2.5,
+      distanceLabel: 'Cerca de Zaruma',
+    }
+  }
+
+  if (provincia.includes('el oro')) {
+    if (
+      ciudad.includes('portovelo') ||
+      ciudad.includes('pinas') ||
+      ciudad.includes('atahualpa')
+    ) {
+      return {
+        fee: 3.5,
+        distanceLabel: 'Distancia media desde Zaruma',
+      }
+    }
+
+    if (
+      ciudad.includes('machala') ||
+      ciudad.includes('pasaje') ||
+      ciudad.includes('santa rosa') ||
+      ciudad.includes('huaquillas') ||
+      ciudad.includes('arenillas')
+    ) {
+      return {
+        fee: 5,
+        distanceLabel: 'Lejos dentro de El Oro',
+      }
+    }
+
+    return {
+      fee: 4.5,
+      distanceLabel: 'Distancia media dentro de El Oro',
+    }
+  }
+
+  if (provincia.includes('loja') || provincia.includes('azuay')) {
+    return {
+      fee: 6.5,
+      distanceLabel: 'Provincia vecina de Zaruma',
+    }
+  }
+
+  if (provincia.includes('zamora chinchipe') || provincia.includes('canar')) {
+    return {
+      fee: 7.5,
+      distanceLabel: 'Provincia más lejana',
+    }
+  }
+
+  return {
+    fee: 9.5,
+    distanceLabel: 'Envío de larga distancia',
+  }
+}
+
 function ProtectedRoute({ isAuthenticated, children }) {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
@@ -2932,6 +3009,9 @@ function AdminPendingOrders({ token, onNotify }) {
                         <p>Correo: {order.cliente?.correo || 'No registrado'}</p>
                         <p>Referencia depósito: {order.referencia_deposito || '-'}</p>
                         <p>{formatDeliveryText(order.forma_entrega, order.direccion_entrega)}</p>
+                        {order.forma_entrega === 'ENTREGA_DOMICILIO' ? (
+                          <p>Costo del envío: {currency(Number(order.costo_envio) || 0)}</p>
+                        ) : null}
                         <p>Total: {currency(Number(order.total) || 0)}</p>
 
                         <div className="admin-order-items">
@@ -2986,6 +3066,9 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
   const [paymentMethod, setPaymentMethod] = useState('DEPOSITO_BANCARIO')
   const [proofImageName, setProofImageName] = useState('')
   const [formaEntrega, setFormaEntrega] = useState('RETIRO_TIENDA')
+  const [provinciaEntrega, setProvinciaEntrega] = useState('')
+  const [ciudadEntrega, setCiudadEntrega] = useState('')
+  const [sectorEntrega, setSectorEntrega] = useState('')
   const [direccionEntrega, setDireccionEntrega] = useState('')
   const [proofSent, setProofSent] = useState(false)
   const [error, setError] = useState('')
@@ -2996,7 +3079,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
   const [lastDeliveryMethod, setLastDeliveryMethod] = useState('RETIRO_TIENDA')
   const [lastDeliveryAddress, setLastDeliveryAddress] = useState('')
 
-  const total = useMemo(
+  const subtotalProductos = useMemo(
     () =>
       cartItems.reduce(
         (sum, item) => sum + Number(item.precio) * Number(item.cantidad),
@@ -3005,8 +3088,18 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
     [cartItems],
   )
 
-  const iva = useMemo(() => Number((total * 0.15).toFixed(2)), [total])
-  const totalConIva = useMemo(() => Number((total + iva).toFixed(2)), [total, iva])
+  const iva = useMemo(
+    () => Number((subtotalProductos * 0.15).toFixed(2)),
+    [subtotalProductos],
+  )
+  const deliveryQuote = useMemo(
+    () => getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega),
+    [formaEntrega, provinciaEntrega, ciudadEntrega],
+  )
+  const totalConIva = useMemo(
+    () => Number((subtotalProductos + iva + deliveryQuote.fee).toFixed(2)),
+    [subtotalProductos, iva, deliveryQuote.fee],
+  )
 
   const onSubmit = async (event) => {
     event.preventDefault()
@@ -3039,6 +3132,28 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
       return
     }
 
+    const provinciaEntregaLimpia = String(provinciaEntrega || '').trim()
+    const ciudadEntregaLimpia = String(ciudadEntrega || '').trim()
+    const sectorEntregaLimpio = String(sectorEntrega || '').trim()
+    const direccionEntregaLimpia = String(direccionEntrega || '').trim()
+
+    if (
+      formaEntrega === 'ENTREGA_DOMICILIO' &&
+      (!provinciaEntregaLimpia ||
+        !ciudadEntregaLimpia ||
+        !sectorEntregaLimpio ||
+        !direccionEntregaLimpia)
+    ) {
+      setError('Completa provincia, ciudad, sector y dirección para envío a domicilio.')
+      onNotify('Completa todos los datos de ubicación para calcular el envío.')
+      return
+    }
+
+    const direccionEntregaCompleta =
+      formaEntrega === 'ENTREGA_DOMICILIO'
+        ? `${provinciaEntregaLimpia}, ${ciudadEntregaLimpia}, ${sectorEntregaLimpio}, ${direccionEntregaLimpia}`
+        : ''
+
     setError('')
     setSuccess('')
     setLoading(true)
@@ -3050,8 +3165,15 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
         metodo_pago: paymentMethod,
         referencia_deposito: autoReference,
         forma_entrega: formaEntrega,
+        provincia_entrega:
+          formaEntrega === 'ENTREGA_DOMICILIO' ? provinciaEntregaLimpia : '',
+        ciudad_entrega:
+          formaEntrega === 'ENTREGA_DOMICILIO' ? ciudadEntregaLimpia : '',
+        sector_entrega:
+          formaEntrega === 'ENTREGA_DOMICILIO' ? sectorEntregaLimpio : '',
         direccion_entrega:
-          formaEntrega === 'ENTREGA_DOMICILIO' ? direccionEntrega : '',
+          formaEntrega === 'ENTREGA_DOMICILIO' ? direccionEntregaLimpia : '',
+        costo_envio: deliveryQuote.fee,
         items: cartItems.map((item) => ({
           id_producto: item.id_producto,
           cantidad: item.cantidad,
@@ -3077,9 +3199,12 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
       setLastOrder(data.order)
       setLastPaymentMethod(paymentMethod)
       setLastDeliveryMethod(formaEntrega)
-      setLastDeliveryAddress(direccionEntrega)
+      setLastDeliveryAddress(direccionEntregaCompleta)
       onOrderComplete(data.order)
       setDireccionEntrega('')
+      setProvinciaEntrega('')
+      setCiudadEntrega('')
+      setSectorEntrega('')
       setProofSent(false)
       setProofImageName('')
       setPaymentMethod('DEPOSITO_BANCARIO')
@@ -3139,11 +3264,21 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           <p>RUC: 0190000001001 - Café Artesanal Zaruma</p>
           <p>IVA 15% incluido en el total.</p>
           <p>
-            Subtotal: <strong>{currency(total)}</strong>
+            Subtotal: <strong>{currency(subtotalProductos)}</strong>
           </p>
           <p>
             IVA (15%): <strong>{currency(iva)}</strong>
           </p>
+          {formaEntrega === 'ENTREGA_DOMICILIO' ? (
+            <p>
+              Costo del envío ({deliveryQuote.distanceLabel}):{' '}
+              <strong>{currency(deliveryQuote.fee)}</strong>
+            </p>
+          ) : (
+            <p>
+              Costo del envío: <strong>{currency(0)}</strong>
+            </p>
+          )}
           <p>
             Total a depositar: <strong>{currency(totalConIva)}</strong>
           </p>
@@ -3207,12 +3342,44 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           <option value="ENTREGA_DOMICILIO">Entrega a domicilio</option>
         </select>
         {formaEntrega === 'ENTREGA_DOMICILIO' ? (
-          <input
-            placeholder="Dirección de entrega"
-            value={direccionEntrega}
-            onChange={(event) => setDireccionEntrega(event.target.value)}
-            required
-          />
+          <div className="delivery-address-grid">
+            <label className="delivery-field">
+              Provincia
+              <input
+                placeholder="Ej: El Oro"
+                value={provinciaEntrega}
+                onChange={(event) => setProvinciaEntrega(event.target.value)}
+                required
+              />
+            </label>
+            <label className="delivery-field">
+              Ciudad
+              <input
+                placeholder="Ej: Zaruma"
+                value={ciudadEntrega}
+                onChange={(event) => setCiudadEntrega(event.target.value)}
+                required
+              />
+            </label>
+            <label className="delivery-field">
+              Sector
+              <input
+                placeholder="Ej: Centro"
+                value={sectorEntrega}
+                onChange={(event) => setSectorEntrega(event.target.value)}
+                required
+              />
+            </label>
+            <label className="delivery-field delivery-field-full">
+              Dirección
+              <input
+                placeholder="Calle principal y referencia"
+                value={direccionEntrega}
+                onChange={(event) => setDireccionEntrega(event.target.value)}
+                required
+              />
+            </label>
+          </div>
         ) : null}
         {error ? <p className="error-text">{error}</p> : null}
         {success ? <p className="success-text">{success}</p> : null}
@@ -3424,6 +3591,9 @@ function MyOrders({ token, onNotify }) {
               <p>Total: {currency(Number(order.total) || 0)}</p>
               <p>Referencia depósito: {order.referencia_deposito || '-'}</p>
               <p>{formatDeliveryText(order.forma_entrega, order.direccion_entrega)}</p>
+              {order.forma_entrega === 'ENTREGA_DOMICILIO' ? (
+                <p>Costo del envío: {currency(Number(order.costo_envio) || 0)}</p>
+              ) : null}
               <p className="order-status">{statusLabelByOrderState(order)}</p>
               {canClientDeleteOrder(order) ? (
                 <button
