@@ -7,15 +7,18 @@ import { requireAuth } from '../middleware/auth.js'
 
 const router = express.Router()
 
+// Detecta hashes heredados para migrarlos a bcrypt en el primer login exitoso.
 function isLegacySha256(hash) {
   return typeof hash === 'string' && /^[a-f0-9]{64}$/i.test(hash)
 }
 
 function sha256(value) {
+  // Compatibilidad temporal con contraseñas heredadas en SHA-256.
   return crypto.createHash('sha256').update(value).digest('hex')
 }
 
 function signToken(user) {
+  // JWT corto con campos necesarios para autorizacion y auditoria basica.
   return jwt.sign(
     {
       id_usuario: user.id_usuario,
@@ -30,6 +33,7 @@ function signToken(user) {
 }
 
 router.post('/register', async (req, res) => {
+  // Registro transaccional: valida duplicados y crea cliente + usuario en bloque.
   const {
     nombres,
     apellidos,
@@ -80,6 +84,7 @@ router.post('/register', async (req, res) => {
       "SELECT password FROM usuarios WHERE estado = 'ACTIVO'",
     )
 
+    // Politica de seguridad: evita reutilizacion exacta de contraseñas existentes.
     for (const row of passwordHashes) {
       const isRepeated = isLegacySha256(row.password)
         ? sha256(password) === row.password
@@ -131,6 +136,7 @@ router.post('/register', async (req, res) => {
 
     await connection.commit()
 
+    // Se devuelve sesion iniciada para mejorar UX post-registro.
     const token = signToken({
       id_usuario: userResult.insertId,
       id_cliente: clientResult.insertId,
@@ -163,6 +169,7 @@ router.post('/register', async (req, res) => {
 })
 
 router.post('/login', async (req, res) => {
+  // Login compatible con hashes legacy y bcrypt.
   const { usuario, password } = req.body
 
   if (!usuario || !password) {
@@ -184,6 +191,7 @@ router.post('/login', async (req, res) => {
     }
 
     const user = rows[0]
+    // Valida credenciales contra el algoritmo que tenga actualmente el registro.
     const validPassword = isLegacySha256(user.password)
       ? sha256(password) === user.password
       : await bcrypt.compare(password, user.password)
@@ -192,6 +200,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ message: 'Credenciales invalidas' })
     }
 
+    // Migra hash antiguo a bcrypt para elevar seguridad sin reset masivo.
     if (isLegacySha256(user.password)) {
       const migratedHash = await bcrypt.hash(password, 10)
       await pool.query('UPDATE usuarios SET password = ? WHERE id_usuario = ?', [
@@ -202,6 +211,7 @@ router.post('/login', async (req, res) => {
 
     const token = signToken(user)
 
+    // Devuelve token + perfil minimo para hidratar estado del frontend.
     return res.json({
       token,
       user: {
@@ -218,6 +228,7 @@ router.post('/login', async (req, res) => {
 })
 
 router.get('/me', requireAuth, async (req, res) => {
+  // Endpoint de sesion activa para hidratar frontend tras recarga.
   try {
     const [rows] = await pool.query(
       `SELECT u.id_usuario, u.id_cliente, u.usuario, u.correo, r.nombre AS rol

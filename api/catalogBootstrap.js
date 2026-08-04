@@ -1,8 +1,10 @@
 import pool from './db.js'
 
+// Evita ejecutar el bootstrap de catalogo varias veces en paralelo.
 let bootstrapPromise = null
 
 async function ensureCategory(connection, { nombre, descripcion }) {
+  // Reutiliza la categoria si ya existe para no duplicar registros.
   const [rows] = await connection.query(
     'SELECT id_categoria FROM categorias WHERE LOWER(nombre) = LOWER(?) LIMIT 1',
     [nombre],
@@ -21,6 +23,7 @@ async function ensureCategory(connection, { nombre, descripcion }) {
 }
 
 export async function ensureSellableShowcaseProducts() {
+  // Si ya hay un bootstrap en curso, comparte la misma promesa.
   if (bootstrapPromise) {
     return bootstrapPromise
   }
@@ -29,6 +32,7 @@ export async function ensureSellableShowcaseProducts() {
     const connection = await pool.getConnection()
 
     try {
+      // Todo el bootstrap se ejecuta como una sola transaccion atomica.
       await connection.beginTransaction()
 
       const [providerRows] = await connection.query(
@@ -115,6 +119,7 @@ export async function ensureSellableShowcaseProducts() {
         },
       ]
 
+      // Inserta productos base solo cuando no existen por codigo.
       for (const product of products) {
         await connection.query(
           `INSERT INTO productos
@@ -138,6 +143,7 @@ export async function ensureSellableShowcaseProducts() {
         )
       }
 
+      // Crea inventario inicial de los productos base que aun no lo tengan.
       await connection.query(
         `INSERT INTO inventario (id_producto, entradas, salidas, existencia)
          SELECT p.id_producto, p.stock, 0, p.stock

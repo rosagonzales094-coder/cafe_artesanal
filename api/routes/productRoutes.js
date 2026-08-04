@@ -12,6 +12,7 @@ const uploadDir = path.resolve(process.cwd(), 'public', 'imagenes', 'uploads')
 
 fs.mkdirSync(uploadDir, { recursive: true })
 
+// Configura almacenamiento de imagenes de producto con nombre unico.
 const imageStorage = multer.diskStorage({
   destination: uploadDir,
   filename: (req, file, cb) => {
@@ -20,6 +21,7 @@ const imageStorage = multer.diskStorage({
   },
 })
 
+// Limita tipo y tamano para evitar cargas invalidas o pesadas.
 const uploadImage = multer({
   storage: imageStorage,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -36,6 +38,7 @@ const uploadImage = multer({
 let productImageColumnPromise = null
 
 async function ensureProductImageColumn() {
+  // Crea columna imagen_url en runtime si la BD aun no fue migrada.
   if (!productImageColumnPromise) {
     productImageColumnPromise = (async () => {
       try {
@@ -64,6 +67,7 @@ async function ensureProductImageColumn() {
 }
 
 function buildProductSelectQuery(hasImageColumn, isAdmin) {
+  // Admin ve catalogo completo; cliente solo productos activos con stock.
   const imageColumn = hasImageColumn ? 'p.imagen_url,' : 'NULL AS imagen_url,'
 
   return `SELECT
@@ -88,6 +92,7 @@ function buildProductSelectQuery(hasImageColumn, isAdmin) {
 }
 
 router.get('/', requireAuth, async (req, res) => {
+  // Carga catalogo con bootstrap preventivo de productos base.
   try {
     try {
       await ensureSellableShowcaseProducts()
@@ -109,6 +114,7 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 router.get('/meta', requireAuth, requireAdmin, async (req, res) => {
+  // Metadata para formularios admin (categorias/proveedores vigentes).
   try {
     const [categorias] = await pool.query(
       "SELECT id_categoria, nombre FROM categorias WHERE UPPER(estado) IN ('ACTIVO', 'ACTIVA') ORDER BY nombre ASC",
@@ -124,6 +130,7 @@ router.get('/meta', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.post('/images', requireAuth, requireAdmin, uploadImage.single('image'), async (req, res) => {
+  // Sube imagen y devuelve URL publica para asociarla al producto.
   if (!req.file) {
     return res.status(400).json({ message: 'Selecciona una imagen para subir' })
   }
@@ -138,6 +145,7 @@ router.post('/images', requireAuth, requireAdmin, uploadImage.single('image'), a
 })
 
 router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
+  // Alta de categoria con validacion de nombre unico.
   const nombre = String(req.body?.nombre || '').trim()
 
   if (!nombre) {
@@ -172,6 +180,7 @@ router.post('/categories', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.delete('/categories/:idCategoria', requireAuth, requireAdmin, async (req, res) => {
+  // Elimina categoria solo si no tiene productos asociados.
   const idCategoria = Number(req.params.idCategoria)
 
   if (!idCategoria) {
@@ -206,6 +215,7 @@ router.delete('/categories/:idCategoria', requireAuth, requireAdmin, async (req,
 })
 
 router.put('/categories/:idCategoria', requireAuth, requireAdmin, async (req, res) => {
+  // Actualiza nombre de categoria evitando colisiones por nombre.
   const idCategoria = Number(req.params.idCategoria)
   const nombre = String(req.body?.nombre || '').trim()
 
@@ -243,11 +253,13 @@ router.put('/categories/:idCategoria', requireAuth, requireAdmin, async (req, re
 })
 
 function parseNumber(value, fallback = 0) {
+  // Evita NaN en payloads del panel admin.
   const parsed = Number(value)
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
 function sanitizeProductPayload(body) {
+  // Normaliza payload admin para evitar tipos inconsistentes.
   const payload = {
     id_categoria: parseNumber(body.id_categoria),
     id_proveedor: parseNumber(body.id_proveedor),
@@ -267,6 +279,7 @@ function sanitizeProductPayload(body) {
 }
 
 function validateProductPayload(payload) {
+  // Reglas de negocio minimas para alta/edicion de producto.
   if (!payload.id_categoria || !payload.id_proveedor) {
     return 'Selecciona categoría y proveedor'
   }
@@ -295,6 +308,7 @@ function validateProductPayload(payload) {
 }
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
+  // Crea producto; si el codigo existe, acumula stock en inventario.
   const payload = sanitizeProductPayload(req.body)
   const validationError = validateProductPayload(payload)
 
@@ -306,6 +320,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   const imageUrl = payload.imagen_url || null
 
   try {
+    // Insercion dinamica para soportar instalaciones con/sin columna de imagen.
     const insertColumns = [
       'id_categoria',
       'id_proveedor',
@@ -362,6 +377,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
   } catch (error) {
     if (error?.code === 'ER_DUP_ENTRY') {
       try {
+        // Si el codigo existe, se toma como reposicion de inventario.
         const existingSelect = hasImageColumn
           ? `SELECT id_producto, codigo, nombre, stock, stock_minimo, precio_venta AS precio, estado, imagen_url
              FROM productos
@@ -438,6 +454,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.put('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
+  // Edicion completa de producto por ID.
   const idProducto = Number(req.params.idProducto)
   if (!idProducto) {
     return res.status(400).json({ message: 'ID de producto inválido' })
@@ -453,6 +470,7 @@ router.put('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
   const imageUrl = payload.imagen_url || null
 
   try {
+    // Update dinamico para mantener compatibilidad con esquemas previos.
     const updateAssignments = [
       'id_categoria = ?',
       'id_proveedor = ?',
@@ -515,6 +533,7 @@ router.put('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.delete('/:idProducto', requireAuth, requireAdmin, async (req, res) => {
+  // Eliminacion fisica de producto (con manejo de referencias en BD).
   const idProducto = Number(req.params.idProducto)
   if (!idProducto) {
     return res.status(400).json({ message: 'ID de producto inválido' })

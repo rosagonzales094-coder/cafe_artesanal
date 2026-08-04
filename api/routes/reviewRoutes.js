@@ -13,6 +13,7 @@ import {
 const router = express.Router()
 const REVIEW_SCOPES = new Set(['PRODUCT', 'APP'])
 
+// Helpers de permisos para moderacion y borrado seguro de contenido.
 function isAdminUser(user) {
   return String(user?.rol || '').trim().toLowerCase() === 'administrador'
 }
@@ -71,6 +72,7 @@ function normalizeConversationComment(comment) {
 }
 
 async function resolveAuthor(connection, reqUser) {
+  // Resuelve nombre visible del autor desde datos de cliente.
   const [rows] = await connection.query(
     `SELECT nombres, apellidos, correo
      FROM clientes
@@ -89,6 +91,7 @@ async function resolveAuthor(connection, reqUser) {
 }
 
 router.get('/', requireAuth, async (req, res) => {
+  // Lista todas las reseñas validas para usuarios autenticados.
   try {
     const reviews = await getAllReviews()
     const normalizedReviews = reviews
@@ -112,6 +115,7 @@ router.get('/', requireAuth, async (req, res) => {
 })
 
 router.get('/public', async (req, res) => {
+  // Exposicion publica solo de reseñas de plataforma (scope APP).
   try {
     const reviews = await getAllReviews()
     const publicReviews = reviews
@@ -135,6 +139,7 @@ router.get('/public', async (req, res) => {
 })
 
 router.post('/', requireAuth, async (req, res) => {
+  // Crea reseña de producto o plataforma con validaciones de scope/rating.
   const scope = normalizeScope(req.body?.scope)
   const rating = normalizeRating(req.body?.rating)
   const comment = String(req.body?.comment || '').trim()
@@ -159,6 +164,7 @@ router.post('/', requireAuth, async (req, res) => {
   let connection
 
   try {
+    // Solo valida producto cuando la reseña es de tipo PRODUCT.
     connection = await pool.getConnection()
 
     let productReviewData = {
@@ -215,6 +221,7 @@ router.post('/', requireAuth, async (req, res) => {
 })
 
 router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
+  // Respuesta oficial de administrador sobre una reseña.
   const idReview = Number(req.params.idReview)
   const reply = normalizeReply(req.body?.reply)
 
@@ -260,6 +267,7 @@ router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
 })
 
 router.post('/:idReview/conversation', requireAuth, async (req, res) => {
+  // Permite que usuarios continúen un hilo de conversación en la reseña.
   const idReview = Number(req.params.idReview)
   const comment = normalizeConversationComment(req.body?.comment)
 
@@ -304,6 +312,7 @@ router.post('/:idReview/conversation', requireAuth, async (req, res) => {
 })
 
 router.delete('/:idReview/conversation/:idReply', requireAuth, async (req, res) => {
+  // Solo admin o dueño de la respuesta pueden eliminarla.
   const idReview = Number(req.params.idReview)
   const idReply = Number(req.params.idReply)
 
@@ -357,6 +366,7 @@ router.delete('/:idReview/conversation/:idReply', requireAuth, async (req, res) 
 })
 
 router.delete('/:idReview', requireAuth, async (req, res) => {
+  // Elimina reseña completa con control de propiedad/administración.
   const idReview = Number(req.params.idReview)
 
   if (!idReview) {

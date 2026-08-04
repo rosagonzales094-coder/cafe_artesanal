@@ -9,125 +9,24 @@ import {
   getPendingOrders,
   upsertOrder,
 } from '../orderStore.js'
+import {
+  isCoffeeForOrderLimit,
+  MAX_COFFEE_UNITS_PER_ORDER,
+  getDeliveryQuote,
+} from '../utils/orderRules.js'
+import {
+  ALLOWED_PAYMENT_METHODS,
+  buildCoffeeLimitValidationMessage,
+  buildDeletedWithoutProofMessage,
+  ORDER_MESSAGES,
+  ORDER_STATUS,
+  PAYMENT_METHOD,
+} from '../constants/orderConstants.js'
 
 const router = express.Router()
-const MAX_COFFEE_UNITS_PER_ORDER = 6
-const ALLOWED_PAYMENT_METHODS = ['DEPOSITO_BANCARIO', 'TRANSFERENCIA_BANCARIA']
-
-function normalizeText(value) {
-  return String(value || '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLowerCase()
-}
-
-function getDeliveryQuote(
-  formaEntrega,
-  provinciaEntrega,
-  ciudadEntrega,
-  sectorEntrega,
-  direccionEntrega,
-) {
-  if (formaEntrega !== 'ENTREGA_DOMICILIO') {
-    return {
-      fee: 0,
-      distanceLabel: 'Sin envío',
-    }
-  }
-
-  const provincia = normalizeText(provinciaEntrega)
-  const ciudad = normalizeText(ciudadEntrega)
-  const sector = normalizeText(sectorEntrega)
-  const direccion = normalizeText(direccionEntrega)
-  const locationText = `${provincia} ${ciudad} ${sector} ${direccion}`.trim()
-
-  if (!locationText) {
-    return {
-      fee: 0,
-      distanceLabel: 'Completa la ubicación para calcular',
-    }
-  }
-
-  if (locationText.includes('zaruma')) {
-    return {
-      fee: 2.5,
-      distanceLabel: 'Cerca de Zaruma',
-    }
-  }
-
-  if (provincia.includes('el oro') || locationText.includes('el oro')) {
-    if (
-      locationText.includes('portovelo') ||
-      locationText.includes('pinas') ||
-      locationText.includes('atahualpa')
-    ) {
-      return {
-        fee: 3.5,
-        distanceLabel: 'Distancia media desde Zaruma',
-      }
-    }
-
-    if (
-      locationText.includes('machala') ||
-      locationText.includes('pasaje') ||
-      locationText.includes('santa rosa') ||
-      locationText.includes('huaquillas') ||
-      locationText.includes('arenillas')
-    ) {
-      return {
-        fee: 5,
-        distanceLabel: 'Lejos dentro de El Oro',
-      }
-    }
-
-    return {
-      fee: 4.5,
-      distanceLabel: 'Distancia media dentro de El Oro',
-    }
-  }
-
-  if (
-    provincia.includes('loja') ||
-    provincia.includes('azuay') ||
-    locationText.includes('loja') ||
-    locationText.includes('azuay')
-  ) {
-    return {
-      fee: 6.5,
-      distanceLabel: 'Provincia vecina de Zaruma',
-    }
-  }
-
-  if (
-    provincia.includes('zamora chinchipe') ||
-    provincia.includes('canar') ||
-    locationText.includes('zamora chinchipe') ||
-    locationText.includes('canar')
-  ) {
-    return {
-      fee: 7.5,
-      distanceLabel: 'Provincia más lejana',
-    }
-  }
-
-  return {
-    fee: 9.5,
-    distanceLabel: 'Envío de larga distancia',
-  }
-}
-
-function isCoffeeForOrderLimit(product) {
-  const code = String(product?.codigo || '').trim().toUpperCase()
-  const category = normalizeText(product?.categoria)
-
-  if (code.startsWith('ACC-') || category.includes('accesor')) {
-    return false
-  }
-
-  return true
-}
 
 router.post('/', requireAuth, async (req, res) => {
+  // Creacion de pedido con validaciones de pago, entrega y limite de cafes.
   const {
     items,
     metodo_pago,
@@ -145,18 +44,18 @@ router.post('/', requireAuth, async (req, res) => {
   const direccionEntrega = String(direccion_entrega || '').trim()
 
   if (!Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ message: 'Debes enviar productos para comprar' })
+    return res.status(400).json({ message: ORDER_MESSAGES.missingItems })
   }
 
   if (!ALLOWED_PAYMENT_METHODS.includes(metodo_pago)) {
     return res.status(400).json({
-      message: 'Método de pago inválido. Usa depósito o transferencia bancaria.',
+      message: ORDER_MESSAGES.invalidPaymentMethod,
     })
   }
 
   if (!['RETIRO_TIENDA', 'ENTREGA_DOMICILIO'].includes(forma_entrega)) {
     return res.status(400).json({
-      message: 'Selecciona una forma de entrega válida',
+      message: ORDER_MESSAGES.invalidDeliveryMethod,
     })
   }
 
@@ -165,18 +64,19 @@ router.post('/', requireAuth, async (req, res) => {
     (!provinciaEntrega || !ciudadEntrega || !sectorEntrega || !direccionEntrega)
   ) {
     return res.status(400).json({
-      message: 'Completa provincia, ciudad, sector y dirección para envío a domicilio',
+      message: ORDER_MESSAGES.missingDeliveryAddress,
     })
   }
 
   const ids = items.map((item) => Number(item.id_producto)).filter(Boolean)
   if (ids.length === 0) {
-    return res.status(400).json({ message: 'Productos invalidos' })
+    return res.status(400).json({ message: ORDER_MESSAGES.invalidProducts })
   }
 
   let connection
 
   try {
+    // Transaccion para mantener consistencia entre ventas, pagos y store JSON.
     connection = await pool.getConnection()
     await connection.beginTransaction()
 
@@ -191,7 +91,7 @@ router.post('/', requireAuth, async (req, res) => {
 
     if (products.length === 0) {
       await connection.rollback()
-      return res.status(400).json({ message: 'No hay productos validos para registrar' })
+      return res.status(400).json({ message: ORDER_MESSAGES.noValidProducts })
     }
 
     const productMap = new Map(products.map((p) => [p.id_producto, p]))
@@ -200,13 +100,14 @@ router.post('/', requireAuth, async (req, res) => {
     let coffeeUnits = 0
     const pendingItems = []
 
+    // Valida cada item y calcula subtotal acumulado.
     for (const item of items) {
       const product = productMap.get(Number(item.id_producto))
       const cantidad = Number(item.cantidad)
 
       if (!product || Number.isNaN(cantidad) || cantidad <= 0) {
         await connection.rollback()
-        return res.status(400).json({ message: 'Items invalidos en la compra' })
+        return res.status(400).json({ message: ORDER_MESSAGES.invalidItemsInOrder })
       }
 
       if (isCoffeeForOrderLimit(product)) {
@@ -226,7 +127,7 @@ router.post('/', requireAuth, async (req, res) => {
     if (coffeeUnits > MAX_COFFEE_UNITS_PER_ORDER) {
       await connection.rollback()
       return res.status(400).json({
-        message: `Solo puedes comprar máximo ${MAX_COFFEE_UNITS_PER_ORDER} cafés por pedido.`,
+        message: buildCoffeeLimitValidationMessage(MAX_COFFEE_UNITS_PER_ORDER),
       })
     }
 
@@ -248,16 +149,16 @@ router.post('/', requireAuth, async (req, res) => {
 
     const [saleResult] = await connection.query(
       `INSERT INTO ventas (id_cliente, id_usuario, subtotal, iva, descuento, total, estado)
-       VALUES (?, ?, ?, ?, 0, ?, 'PENDIENTE')`,
-      [req.user.id_cliente, req.user.id_usuario, total, iva, totalConIva],
+       VALUES (?, ?, ?, ?, 0, ?, ?)`,
+      [req.user.id_cliente, req.user.id_usuario, total, iva, totalConIva, ORDER_STATUS.PENDING],
     )
 
     const paymentMethodName =
-      metodo_pago === 'TRANSFERENCIA_BANCARIA'
+      metodo_pago === PAYMENT_METHOD.BANK_TRANSFER
         ? 'Transferencia bancaria'
         : 'Depósito bancario'
     const paymentMethodDescription =
-      metodo_pago === 'TRANSFERENCIA_BANCARIA'
+      metodo_pago === PAYMENT_METHOD.BANK_TRANSFER
         ? 'Pago por transferencia a cuenta bancaria'
         : 'Pago por depósito a cuenta bancaria'
 
@@ -280,12 +181,13 @@ router.post('/', requireAuth, async (req, res) => {
 
     await connection.query(
       `INSERT INTO pagos (id_venta, id_metodo, monto, referencia, estado)
-       VALUES (?, ?, ?, ?, 'PENDIENTE')`,
+       VALUES (?, ?, ?, ?, ?)`,
       [
         saleResult.insertId,
         idMetodo,
         totalConIva,
         referenciaNormalizada || null,
+        ORDER_STATUS.PENDING,
       ],
     )
 
@@ -297,7 +199,7 @@ router.post('/', requireAuth, async (req, res) => {
       iva,
       costo_envio: costoEnvio,
       total: totalConIva,
-      estado: 'PENDIENTE',
+      estado: ORDER_STATUS.PENDING,
       metodo_pago: metodo_pago,
       referencia_deposito: referenciaNormalizada,
       forma_entrega,
@@ -313,7 +215,7 @@ router.post('/', requireAuth, async (req, res) => {
     await connection.commit()
 
     return res.status(201).json({
-      message: 'Pedido registrado. Esperando validación del depósito.',
+      message: ORDER_MESSAGES.orderCreated,
       order: {
         id_venta: saleResult.insertId,
         subtotal: total,
@@ -330,7 +232,7 @@ router.post('/', requireAuth, async (req, res) => {
       await connection.rollback()
     }
 
-    return res.status(500).json({ message: 'Error al crear el pedido', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.orderCreateFailed, error })
   } finally {
     if (connection) {
       connection.release()
@@ -339,16 +241,18 @@ router.post('/', requireAuth, async (req, res) => {
 })
 
 router.get('/my', requireAuth, async (req, res) => {
+  // Historial del cliente autenticado.
   try {
     const orders = await getOrdersByClient(req.user.id_cliente)
 
     return res.json({ orders })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al cargar tus pedidos', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.myOrdersLoadFailed, error })
   }
 })
 
 router.get('/admin/sales-summary', requireAuth, requireAdmin, async (req, res) => {
+  // Resumen agregado por administrador para panel de ingresos.
   try {
     const [admins] = await pool.query(
       `SELECT id_usuario, nombres, apellidos, correo
@@ -381,9 +285,9 @@ router.get('/admin/sales-summary', requireAuth, requireAdmin, async (req, res) =
           totalIva: 0,
           totalIngreso: 0,
           ventasPorEstado: {
-            PAGADA: 0,
-            PENDIENTE: 0,
-            ANULADA: 0,
+            [ORDER_STATUS.PAID]: 0,
+            [ORDER_STATUS.PENDING]: 0,
+            [ORDER_STATUS.CANCELED]: 0,
           },
         }
       }
@@ -393,7 +297,7 @@ router.get('/admin/sales-summary', requireAuth, requireAdmin, async (req, res) =
       summaryByAdmin[idUsuario].totalSubtotal += subtotal
       summaryByAdmin[idUsuario].totalIva += iva
 
-      if (estado === 'PAGADA') {
+      if (estado === ORDER_STATUS.PAID) {
         summaryByAdmin[idUsuario].totalIngreso += total
       }
 
@@ -427,11 +331,12 @@ router.get('/admin/sales-summary', requireAuth, requireAdmin, async (req, res) =
       resumenPorAdmin: summary,
     })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al generar resumen de ventas', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.salesSummaryFailed, error })
   }
 })
 
 router.get('/admin/pending', requireAuth, requireAdmin, async (req, res) => {
+  // Vista enfocada en pedidos pendientes con datos de cliente enriquecidos.
   try {
     const [clients] = await pool.query(
       `SELECT id_cliente, nombres, apellidos, telefono, correo
@@ -463,11 +368,12 @@ router.get('/admin/pending', requireAuth, requireAdmin, async (req, res) => {
 
     return res.json({ orders })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al listar pedidos pendientes', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.pendingOrdersLoadFailed, error })
   }
 })
 
 router.get('/admin/all', requireAuth, requireAdmin, async (req, res) => {
+  // Lista completa ordenada por prioridad de estado y fecha.
   try {
     const [clients] = await pool.query(
       `SELECT id_cliente, nombres, apellidos, telefono, correo
@@ -488,9 +394,9 @@ router.get('/admin/all', requireAuth, requireAdmin, async (req, res) => {
     const allOrders = await getAllOrders()
 
     const statusWeight = {
-      PENDIENTE: 0,
-      PAGADA: 1,
-      ANULADA: 2,
+      [ORDER_STATUS.PENDING]: 0,
+      [ORDER_STATUS.PAID]: 1,
+      [ORDER_STATUS.CANCELED]: 2,
     }
 
     const orders = allOrders
@@ -542,14 +448,15 @@ router.get('/admin/all', requireAuth, requireAdmin, async (req, res) => {
 
     return res.json({ orders })
   } catch (error) {
-    return res.status(500).json({ message: 'Error al listar todos los pedidos', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.allOrdersLoadFailed, error })
   }
 })
 
 router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res) => {
+  // Aprueba pedido: valida stock, descuenta inventario y confirma pago.
   const idVenta = Number(req.params.idVenta)
   if (!idVenta) {
-    return res.status(400).json({ message: 'ID de venta invalido' })
+    return res.status(400).json({ message: ORDER_MESSAGES.invalidSaleId })
   }
 
   let connection
@@ -561,19 +468,19 @@ router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res
 
     if (!sale) {
       await connection.rollback()
-      return res.status(404).json({ message: 'Pedido no encontrado' })
+      return res.status(404).json({ message: ORDER_MESSAGES.orderNotFound })
     }
 
-    if (sale.estado !== 'PENDIENTE') {
+    if (sale.estado !== ORDER_STATUS.PENDING) {
       await connection.rollback()
-      return res.status(409).json({ message: 'Este pedido ya fue procesado' })
+      return res.status(409).json({ message: ORDER_MESSAGES.orderAlreadyProcessed })
     }
 
     const pendingItems = Array.isArray(sale.items) ? sale.items : []
 
     if (pendingItems.length === 0) {
       await connection.rollback()
-      return res.status(400).json({ message: 'El pedido no tiene detalle para aprobar' })
+      return res.status(400).json({ message: ORDER_MESSAGES.orderMissingDetails })
     }
 
     const ids = pendingItems
@@ -591,17 +498,18 @@ router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res
 
     if (products.length !== ids.length) {
       await connection.rollback()
-      return res.status(400).json({ message: 'Uno o mas productos ya no existen' })
+      return res.status(400).json({ message: ORDER_MESSAGES.missingProductsAtApproval })
     }
 
     const productMap = new Map(products.map((product) => [product.id_producto, product]))
 
+    // Doble validacion antes de descontar stock para evitar negativos.
     for (const item of pendingItems) {
       const product = productMap.get(Number(item.id_producto))
       const cantidad = Number(item.cantidad)
       if (!product || !Number.isFinite(cantidad) || cantidad <= 0) {
         await connection.rollback()
-        return res.status(400).json({ message: 'El pedido tiene items invalidos' })
+        return res.status(400).json({ message: ORDER_MESSAGES.invalidItemsAtApproval })
       }
 
       if (Number(product.stock) < cantidad) {
@@ -640,9 +548,9 @@ router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res
 
     await connection.query(
       `UPDATE ventas
-       SET estado = 'PAGADA'
+       SET estado = ?
        WHERE id_venta = ?`,
-      [idVenta],
+      [ORDER_STATUS.PAID, idVenta],
     )
 
     await connection.query(
@@ -654,16 +562,16 @@ router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res
 
     await upsertOrder({
       ...sale,
-      estado: 'PAGADA',
+      estado: ORDER_STATUS.PAID,
     })
 
     await connection.commit()
-    return res.json({ message: 'Pedido aprobado y stock descontado correctamente' })
+    return res.json({ message: ORDER_MESSAGES.orderApproved })
   } catch (error) {
     if (connection) {
       await connection.rollback()
     }
-    return res.status(500).json({ message: 'Error al aprobar pedido', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.orderApproveFailed, error })
   } finally {
     if (connection) {
       connection.release()
@@ -672,9 +580,10 @@ router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res
 })
 
 router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res) => {
+  // Rechaza pedido pendiente y actualiza estados en ventas/pagos.
   const idVenta = Number(req.params.idVenta)
   if (!idVenta) {
-    return res.status(400).json({ message: 'ID de venta invalido' })
+    return res.status(400).json({ message: ORDER_MESSAGES.invalidSaleId })
   }
 
   let connection
@@ -686,19 +595,19 @@ router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res)
 
     if (!sale) {
       await connection.rollback()
-      return res.status(404).json({ message: 'Pedido no encontrado' })
+      return res.status(404).json({ message: ORDER_MESSAGES.orderNotFound })
     }
 
-    if (sale.estado !== 'PENDIENTE') {
+    if (sale.estado !== ORDER_STATUS.PENDING) {
       await connection.rollback()
-      return res.status(409).json({ message: 'Este pedido ya fue procesado' })
+      return res.status(409).json({ message: ORDER_MESSAGES.orderAlreadyProcessed })
     }
 
     await connection.query(
       `UPDATE ventas
-       SET estado = 'ANULADA'
+       SET estado = ?
        WHERE id_venta = ?`,
-      [idVenta],
+      [ORDER_STATUS.CANCELED, idVenta],
     )
 
     await connection.query(
@@ -710,16 +619,16 @@ router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res)
 
     await upsertOrder({
       ...sale,
-      estado: 'ANULADA',
+      estado: ORDER_STATUS.CANCELED,
     })
 
     await connection.commit()
-    return res.json({ message: 'Pedido rechazado correctamente' })
+    return res.json({ message: ORDER_MESSAGES.orderRejected })
   } catch (error) {
     if (connection) {
       await connection.rollback()
     }
-    return res.status(500).json({ message: 'Error al rechazar pedido', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.orderRejectFailed, error })
   } finally {
     if (connection) {
       connection.release()
@@ -728,9 +637,10 @@ router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res)
 })
 
 router.delete('/my/:idVenta', requireAuth, async (req, res) => {
+  // Elimina un pedido propio solo si sigue pendiente y sin comprobante.
   const idVenta = Number(req.params.idVenta)
   if (!idVenta) {
-    return res.status(400).json({ message: 'ID de venta invalido' })
+    return res.status(400).json({ message: ORDER_MESSAGES.invalidSaleId })
   }
 
   let connection
@@ -749,25 +659,25 @@ router.delete('/my/:idVenta', requireAuth, async (req, res) => {
 
     if (saleRows.length === 0) {
       await connection.rollback()
-      return res.status(404).json({ message: 'Pedido no encontrado' })
+      return res.status(404).json({ message: ORDER_MESSAGES.orderNotFound })
     }
 
     const sale = saleRows[0]
     if (Number(sale.id_cliente) !== Number(req.user.id_cliente)) {
       await connection.rollback()
-      return res.status(403).json({ message: 'No puedes eliminar este pedido' })
+      return res.status(403).json({ message: ORDER_MESSAGES.notOwnerDeleteOrder })
     }
 
-    if (sale.estado !== 'PENDIENTE') {
+    if (sale.estado !== ORDER_STATUS.PENDING) {
       await connection.rollback()
-      return res.status(409).json({ message: 'Solo puedes eliminar pedidos pendientes' })
+      return res.status(409).json({ message: ORDER_MESSAGES.onlyPendingCanDelete })
     }
 
     const referenciaPago = String(sale.referencia_pago || '').trim()
     if (referenciaPago) {
       await connection.rollback()
       return res.status(409).json({
-        message: 'Solo puedes eliminar pedidos sin comprobante enviado',
+        message: ORDER_MESSAGES.onlyNoProofCanDelete,
       })
     }
 
@@ -786,12 +696,12 @@ router.delete('/my/:idVenta', requireAuth, async (req, res) => {
     await deleteOrderById(idVenta)
 
     await connection.commit()
-    return res.json({ message: 'Pedido eliminado correctamente' })
+    return res.json({ message: ORDER_MESSAGES.orderDeleted })
   } catch (error) {
     if (connection) {
       await connection.rollback()
     }
-    return res.status(500).json({ message: 'Error al eliminar el pedido', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.orderDeleteFailed, error })
   } finally {
     if (connection) {
       connection.release()
@@ -800,6 +710,7 @@ router.delete('/my/:idVenta', requireAuth, async (req, res) => {
 })
 
 router.delete('/my', requireAuth, async (req, res) => {
+  // Limpieza masiva de historial: solo pedidos pendientes sin comprobante.
   let connection
 
   try {
@@ -816,7 +727,7 @@ router.delete('/my', requireAuth, async (req, res) => {
 
     if (sales.length === 0) {
       await connection.rollback()
-      return res.json({ message: 'No tienes pedidos para eliminar' })
+      return res.json({ message: ORDER_MESSAGES.missingClientOrders })
     }
 
     const ids = sales.map((sale) => Number(sale.id_venta)).filter(Boolean)
@@ -842,7 +753,7 @@ router.delete('/my', requireAuth, async (req, res) => {
     const deletableIds = sales
       .filter((sale) => {
         const idVenta = Number(sale.id_venta)
-        const isPending = String(sale.estado || '').toUpperCase() === 'PENDIENTE'
+        const isPending = String(sale.estado || '').toUpperCase() === ORDER_STATUS.PENDING
         const hasPaymentProof = paymentReferenceBySale.get(idVenta) === true
         return isPending && !hasPaymentProof
       })
@@ -851,7 +762,7 @@ router.delete('/my', requireAuth, async (req, res) => {
     if (deletableIds.length === 0) {
       await connection.rollback()
       return res.status(409).json({
-        message: 'Solo puedes eliminar pedidos pendientes sin comprobante enviado',
+        message: ORDER_MESSAGES.onlyPendingNoProofBulkDelete,
       })
     }
 
@@ -881,13 +792,13 @@ router.delete('/my', requireAuth, async (req, res) => {
 
     await connection.commit()
     return res.json({
-      message: `Se eliminaron ${deletableIds.length} pedido(s) sin comprobante enviado.`,
+      message: buildDeletedWithoutProofMessage(deletableIds.length),
     })
   } catch (error) {
     if (connection) {
       await connection.rollback()
     }
-    return res.status(500).json({ message: 'Error al eliminar historial', error })
+    return res.status(500).json({ message: ORDER_MESSAGES.historyDeleteFailed, error })
   } finally {
     if (connection) {
       connection.release()

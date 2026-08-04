@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 
 export function requireAuth(req, res, next) {
+  // Verifica formato Bearer y adjunta payload JWT en req.user.
   const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Token requerido' })
@@ -18,6 +19,7 @@ export function requireAuth(req, res, next) {
 }
 
 export function requireAdmin(req, res, next) {
+  // Autoriza exclusivamente a usuarios con rol administrador.
   if (!req.user?.rol) {
     return res.status(403).json({ message: 'Acceso denegado para este recurso' })
   }

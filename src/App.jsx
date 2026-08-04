@@ -3,6 +3,7 @@ import { Link, Navigate, Route, Routes, useLocation, useNavigate } from 'react-r
 import './App.css'
 
 function resolveApiUrl() {
+  // Resuelve la base API para desarrollo local y despliegue en produccion.
   const configuredUrl = import.meta.env.VITE_API_URL
 
   if (!import.meta.env.PROD) {
@@ -25,6 +26,7 @@ const BRAND_LOGO_URL = '/imagenes/logo.png'
 const CATALOG_PDF_URL = `${API_URL}/catalog/pdf`
 const ADMIN_WHATSAPP_PHONE = '593988062935'
 
+// Mapa principal de imagenes por codigo para mantener consistencia visual.
 const PRODUCT_IMAGE_BY_CODE = {
   'CAF-ZAR-250G': '/imagenes/Imagen_1.jpeg',
   'CAF-ZAR-500M': '/imagenes/Imagen_2.jpeg',
@@ -52,6 +54,7 @@ const PRODUCT_IMAGE_FALLBACKS = [
   '/imagenes/Cafetera_Prensa.jpg',
 ]
 
+// Cafes destacados mostrados en la seccion principal del home.
 const SPECIAL_COFFEES = [
   {
     id: 'especial-geisha',
@@ -85,6 +88,7 @@ const SPECIAL_COFFEES = [
   },
 ]
 
+// Opciones estandarizadas para unidad de venta de productos.
 const PRODUCT_UNIT_OPTIONS = [
   { value: 'Bolsa', label: 'Bolsa' },
   { value: 'Unidad', label: 'Unidad' },
@@ -95,6 +99,7 @@ const PRODUCT_UNIT_OPTIONS = [
 ]
 
 async function uploadProductImageFile(token, file) {
+  // Carga binaria de imagen al backend y devuelve URL publica.
   const formData = new FormData()
   formData.append('image', file)
 
@@ -113,6 +118,7 @@ async function uploadProductImageFile(token, file) {
 }
 
 function getProductImageUrl(product, index) {
+  // Prioriza imagen personalizada, luego mapa por codigo y finalmente fallback.
   const customImage = String(product?.imagen_url || product?.imagen || '').trim()
   const code = normalizeCode(product?.codigo)
   const name = normalizeText(product?.nombre)
@@ -156,12 +162,14 @@ function getProductImageUrl(product, index) {
 }
 
 function normalizeCode(value) {
+  // Normaliza codigos para comparaciones seguras entre UI y API.
   return String(value || '')
     .trim()
     .toUpperCase()
 }
 
 function normalizeText(value) {
+  // Normaliza texto removiendo acentos para filtros y reglas de negocio.
   return String(value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -169,6 +177,7 @@ function normalizeText(value) {
 }
 
 function getCatalogGroup(product) {
+  // Clasifica productos en artesanal, limitada o accesorios para filtros UI.
   const code = normalizeCode(product?.codigo)
   const category = normalizeText(product?.categoria)
   const name = normalizeText(product?.nombre)
@@ -188,6 +197,7 @@ function getCatalogGroup(product) {
 }
 
 function getProductDescription(product) {
+  // Enriquecimiento de descripcion para mejorar lectura comercial en catalogo.
   const code = normalizeCode(product?.codigo)
   const existingDescription = String(product?.descripcion || '').trim()
   const name = normalizeText(product?.nombre)
@@ -235,6 +245,7 @@ function getProductDescription(product) {
   return `${existingDescription || 'Cafe artesanal seleccionado.'} Ideal para disfrutar en casa, compartir o incluir en una preparacion diaria con sabor consistente.`
 }
 
+// Estado inicial compartido del formulario admin de producto.
 const INITIAL_ADMIN_PRODUCT_FORM = {
   id_categoria: '',
   id_proveedor: '',
@@ -262,6 +273,7 @@ const REVIEW_SCOPE_PRODUCT = 'PRODUCT'
 const REVIEW_SCOPE_APP = 'APP'
 
 function loadCartFromStorage() {
+  // Recupera carrito persistido y aplica expiracion para evitar datos obsoletos.
   if (typeof window === 'undefined') return []
 
   try {
@@ -284,6 +296,7 @@ function loadCartFromStorage() {
 }
 
 function saveCartToStorage(items) {
+  // Persistencia del carrito para continuidad de compra entre recargas.
   if (typeof window === 'undefined') return
 
   if (!Array.isArray(items) || items.length === 0) {
@@ -301,6 +314,7 @@ function saveCartToStorage(items) {
 }
 
 function loadAppReviewsFromStorage() {
+  // Cache local de reseñas generales para mejor resiliencia en frontend.
   if (typeof window === 'undefined') return []
 
   try {
@@ -315,6 +329,7 @@ function loadAppReviewsFromStorage() {
 }
 
 function saveAppReviewsToStorage(reviews) {
+  // Guarda reseñas de plataforma para restauracion rapida en UI.
   if (typeof window === 'undefined') return
 
   const safeReviews = Array.isArray(reviews) ? reviews : []
@@ -322,14 +337,17 @@ function saveAppReviewsToStorage(reviews) {
 }
 
 function isCoffeeForOrderLimit(product) {
+  // Solo limita productos cafe; accesorios quedan fuera del limite.
   return getCatalogGroup(product) !== 'ACCESORIOS'
 }
 
 function normalizeReviewScope(scope) {
+  // Estandariza alcance de reseña para filtros consistentes.
   return String(scope || '').trim().toUpperCase()
 }
 
 function summarizeReviews(reviews) {
+  // Calcula cantidad y promedio para resumen visible en tarjetas/secciones.
   const safeReviews = Array.isArray(reviews) ? reviews : []
   const count = safeReviews.length
   const average = count
@@ -343,6 +361,7 @@ function summarizeReviews(reviews) {
 }
 
 function formatReviewDate(value) {
+  // Formatea fechas de reseñas en locale es-EC.
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) {
     return ''
@@ -356,6 +375,7 @@ function formatReviewDate(value) {
 }
 
 function ReviewStars({ rating }) {
+  // Render visual de calificacion con estrellas llenas/vacias.
   const safeRating = Math.max(0, Math.min(5, Number(rating) || 0))
   const fullStars = Math.round(safeRating)
 
@@ -363,6 +383,7 @@ function ReviewStars({ rating }) {
 }
 
 function RatingPicker({ value, onChange, label }) {
+  // Control de entrada para seleccionar rating entre 1 y 5.
   const selectedValue = Math.max(1, Math.min(5, Number(value) || 5))
 
   return (
@@ -409,6 +430,7 @@ function ReviewThreadList({
   deletingKey,
   removingReviewId,
 }) {
+  // Lista de reseñas con flujo completo: responder, conversar y eliminar.
   return (
     <div className="review-list review-list-wide">
       {reviews.map((review) => {
@@ -584,6 +606,7 @@ function ReviewThreadList({
 }
 
 function PasswordField({ name, value, onChange, placeholder, required = false }) {
+  // Campo reutilizable con toggle mostrar/ocultar contraseña.
   const [showPassword, setShowPassword] = useState(false)
 
   return (
@@ -634,6 +657,7 @@ function PlatformReviewSection({
   deletingKey,
   removingReviewId,
 }) {
+  // Seccion de reseñas globales de la plataforma en la pagina de inicio.
   return (
     <section className="card app-review-card home-review-section">
       <h3>Reseñas de nuestros clientes</h3>
@@ -712,6 +736,7 @@ function PlatformReviewSection({
 }
 
 function countCoffeeUnits(items) {
+  // Cuenta solo unidades consideradas cafe para validar limite por pedido.
   return items.reduce((total, item) => {
     if (!isCoffeeForOrderLimit(item)) return total
     return total + (Number(item.cantidad) || 0)
@@ -719,6 +744,7 @@ function countCoffeeUnits(items) {
 }
 
 function getPaymentMethodLabel(value) {
+  // Etiqueta amigable para mostrar metodo de pago en UI.
   if (value === 'TRANSFERENCIA_BANCARIA') {
     return 'Transferencia bancaria'
   }
@@ -727,6 +753,7 @@ function getPaymentMethodLabel(value) {
 }
 
 function mapProductToAdminForm(product) {
+  // Adapta un producto del API al formato controlado del formulario admin.
   return {
     id_categoria: String(product.id_categoria || ''),
     id_proveedor: String(product.id_proveedor || ''),
@@ -744,6 +771,7 @@ function mapProductToAdminForm(product) {
 }
 
 function currency(value) {
+  // Formato monetario uniforme en dolares para toda la app.
   return new Intl.NumberFormat('es-EC', {
     style: 'currency',
     currency: 'USD',
@@ -751,6 +779,7 @@ function currency(value) {
 }
 
 function formatOrderDate(value) {
+  // Formatea fecha/hora de pedidos para vistas cliente y admin.
   if (!value) return '-'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return '-'
@@ -761,6 +790,7 @@ function formatOrderDate(value) {
 }
 
 function formatDeliveryText(formaEntrega, direccionEntrega) {
+  // Texto legible del tipo de entrega con direccion opcional.
   if (formaEntrega === 'ENTREGA_DOMICILIO') {
     return `Entrega a domicilio${direccionEntrega ? ` - ${direccionEntrega}` : ''}`
   }
@@ -769,6 +799,7 @@ function formatDeliveryText(formaEntrega, direccionEntrega) {
 }
 
 function normalizeLocationValue(value) {
+  // Normaliza ubicacion para reglas de costo de envio.
   return String(value || '')
     .trim()
     .normalize('NFD')
@@ -783,6 +814,7 @@ function getDeliveryQuote(
   sectorEntrega,
   direccionEntrega,
 ) {
+  // Reglas heuristicas de envio segun cercania geográfica a Zaruma.
   if (formaEntrega !== 'ENTREGA_DOMICILIO') {
     return {
       fee: 0,
@@ -872,6 +904,7 @@ function getDeliveryQuote(
 }
 
 function ProtectedRoute({ isAuthenticated, children }) {
+  // Guardia de rutas privadas, redirige a login si no hay sesion.
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />
   }
@@ -879,6 +912,7 @@ function ProtectedRoute({ isAuthenticated, children }) {
 }
 
 function WhatsAppButton() {
+  // CTA flotante de soporte y contacto comercial por WhatsApp.
   const text = encodeURIComponent(
     'Hola, deseo información sobre café artesanal de Zaruma, El Oro.',
   )
@@ -923,6 +957,7 @@ function Home({
   deletingKey,
   removingReviewId,
 }) {
+  // Landing principal con hero, ubicacion, destacados y reseñas.
   return (
     <>
       <section className="hero-home" id="sobre-nosotros">
@@ -1080,6 +1115,7 @@ function Home({
 }
 
 function Login({ onLogin, onNotify }) {
+  // Pantalla de autenticacion de usuario.
   const [form, setForm] = useState({ usuario: '', password: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -1145,6 +1181,7 @@ function Login({ onLogin, onNotify }) {
 }
 
 function Register({ onRegister, onNotify }) {
+  // Pantalla de registro para crear cliente + cuenta de acceso.
   const [form, setForm] = useState({
     nombres: '',
     apellidos: '',
@@ -1253,6 +1290,7 @@ function Register({ onRegister, onNotify }) {
 }
 
 function AddProductPage({ token, onNotify }) {
+  // Formulario dedicado para alta de productos desde admin.
   const navigate = useNavigate()
   const [adminMeta, setAdminMeta] = useState({ categorias: [], proveedores: [] })
   const [form, setForm] = useState(INITIAL_ADMIN_PRODUCT_FORM)
@@ -1545,6 +1583,7 @@ function AddProductPage({ token, onNotify }) {
 }
 
 function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage }) {
+  // Modulo principal de catalogo: filtros, reseñas y herramientas admin.
   const location = useLocation()
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
@@ -1679,6 +1718,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }, [reviews])
 
   const reviewSummaryByProductId = useMemo(() => {
+    // Resumen por producto para mostrar rating medio y volumen de reseñas.
     const map = new Map()
 
     for (const product of products) {
@@ -1690,6 +1730,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }, [products, productReviewsById])
 
   const loadProducts = useCallback(async () => {
+    // Carga catalogo actual desde API.
     const response = await fetch(`${API_URL}/products`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -1701,6 +1742,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }, [token])
 
   const loadAdminMeta = useCallback(async () => {
+    // Carga categorias/proveedores solo cuando el usuario es admin.
     if (!isAdmin) return
 
     const metaResponse = await fetch(`${API_URL}/products/meta`, {
@@ -1718,6 +1760,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }, [isAdmin, token])
 
   const loadReviews = useCallback(async () => {
+    // Carga reseñas de producto para alimentar cada tarjeta del catalogo.
     const response = await fetch(`${API_URL}/reviews`, {
       headers: { Authorization: `Bearer ${token}` },
     })
@@ -1737,6 +1780,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }, [token])
 
   useEffect(() => {
+    // Inicializa datos del catalogo y panel admin en paralelo secuencial.
     async function loadData() {
       try {
         setLoading(true)
@@ -1827,6 +1871,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const onAdminSubmit = async (event) => {
+    // Crea o actualiza producto segun modo de edicion activo.
     event.preventDefault()
     setAdminMessage('')
     setAdminSaving(true)
@@ -2049,6 +2094,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const handleAddToCart = (product) => {
+    // Agrega al carrito validando stock restante en tiempo real.
     const stockActual = Number(product.stock) || 0
     const cantidadEnCarrito = cartQuantityByProductId.get(product.id_producto) || 0
     const restante = Math.max(stockActual - cantidadEnCarrito, 0)
@@ -2076,6 +2122,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const submitReview = async ({ scope, idProducto = null, draft, key }) => {
+    // Publica reseña de producto y refresca lista.
     const rating = Number(draft?.rating)
 
     if (!rating || rating < 1 || rating > 5) {
@@ -2123,6 +2170,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const submitReviewReply = async (idReview, reply) => {
+    // Publica respuesta admin sobre reseña.
     const replyText = String(reply || '').trim()
 
     if (!replyText) {
@@ -2159,6 +2207,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const submitConversationReply = async (idReview, comment) => {
+    // Añade mensaje al hilo de conversación de una reseña.
     const commentText = String(comment || '').trim()
 
     if (!commentText) {
@@ -2227,6 +2276,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const deleteReview = async (idReview) => {
+    // Elimina reseña completa con confirmacion del usuario.
     const confirmed = window.confirm('¿Eliminar esta reseña de forma permanente?')
     if (!confirmed) return
 
@@ -2844,6 +2894,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 }
 
 function Cart({ cartItems, onChangeQuantity, onRemove }) {
+  // Vista de carrito con ajuste de cantidades y resumen de compra.
   const navigate = useNavigate()
   const subtotal = useMemo(
     () =>
@@ -2899,6 +2950,7 @@ function Cart({ cartItems, onChangeQuantity, onRemove }) {
 }
 
 function AdminPendingOrders({ token, onNotify }) {
+  // Panel admin para aprobar/rechazar pedidos segun estado.
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [processingOrderId, setProcessingOrderId] = useState(null)
@@ -3087,6 +3139,7 @@ function AdminPendingOrders({ token, onNotify }) {
 }
 
 function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
+  // Flujo de pago: validaciones, envio de comprobante y registro de pedido.
   const navigate = useNavigate()
   const proofImageInputRef = useRef(null)
   const [paymentMethod, setPaymentMethod] = useState('DEPOSITO_BANCARIO')
@@ -3477,6 +3530,7 @@ function canClientDeleteOrder(order) {
 }
 
 function MyOrders({ token, onNotify }) {
+  // Historial de pedidos del cliente con refresco y eliminaciones permitidas.
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [deletingOrderId, setDeletingOrderId] = useState(null)
@@ -3659,6 +3713,7 @@ function MyOrders({ token, onNotify }) {
 }
 
 function AdminInventory({ token, onNotify }) {
+  // Vista admin de inventario completo con alertas de stock bajo.
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -3744,6 +3799,7 @@ function AdminInventory({ token, onNotify }) {
 }
 
 function AdminRevenueSummary({ token, onNotify }) {
+  // Tablero rapido de ingresos clasificado por estado de venta.
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -3844,6 +3900,7 @@ function AdminRevenueSummary({ token, onNotify }) {
 }
 
 function SiteFooter({ onNotify }) {
+  // Footer con ayuda, redes y suscripcion a novedades.
   const [email, setEmail] = useState('')
 
   const onSubscribe = (event) => {
@@ -3948,6 +4005,7 @@ function SiteFooter({ onNotify }) {
 }
 
 function App() {
+  // Orquestador global: sesion, rutas, estado compartido y notificaciones.
   const location = useLocation()
   const [token, setToken] = useState(localStorage.getItem('token') || '')
   const [user, setUser] = useState(null)
@@ -3978,6 +4036,7 @@ function App() {
   const appReviewSummary = useMemo(() => summarizeReviews(appReviews), [appReviews])
 
   const refreshAppReviews = useCallback(async () => {
+    // Refresca reseñas publicas de plataforma sin bloquear la UI.
     try {
       const response = await fetch(`${API_URL}/reviews/public`)
       const data = await response.json()
@@ -4003,6 +4062,7 @@ function App() {
   }, [])
 
   useEffect(() => {
+    // Cierra toast automaticamente luego de un tiempo corto.
     if (!cartToast) return
 
     const timerId = window.setTimeout(() => {
@@ -4013,6 +4073,7 @@ function App() {
   }, [cartToast])
 
   useEffect(() => {
+    // Sincroniza carrito en localStorage al cambiar items.
     saveCartToStorage(cartItems)
   }, [cartItems])
 
@@ -4048,6 +4109,7 @@ function App() {
   }, [previewImage])
 
   useEffect(() => {
+    // Recupera usuario actual desde token para mantener sesion.
     async function loadSession() {
       if (!token) {
         setUser(null)
@@ -4074,6 +4136,7 @@ function App() {
   }, [token])
 
   useEffect(() => {
+    // Polling admin para notificar nuevos pedidos pendientes.
     if (!isAdmin || !token) {
       pendingRequestsRef.current = 0
       return
@@ -4126,6 +4189,7 @@ function App() {
   }, [isAdmin, token, showToast])
 
   useEffect(() => {
+    // Polling cliente para avisar cambios en estado de pedidos.
     if (!isAuthenticated || isAdmin || !token) {
       myOrdersStatusRef.current = new Map()
       myOrdersCountRef.current = 0
@@ -4209,6 +4273,7 @@ function App() {
   }
 
   const addToCart = (product) => {
+    // Agrega al carrito respetando limite maximo de cafes por pedido.
     let limitMessage = ''
 
     setCartItems((prev) => {
@@ -4238,6 +4303,7 @@ function App() {
   }
 
   const changeQuantity = (idProducto, cantidad) => {
+    // Ajusta cantidad en carrito y vuelve a validar limite de cafes.
     if (!cantidad || cantidad < 1) return
     const found = cartItems.find((item) => item.id_producto === idProducto)
     if (!found) return
@@ -4293,6 +4359,7 @@ function App() {
   }, [])
 
   const submitAppReview = async () => {
+    // Publica reseña general de plataforma para home.
     const rating = Number(appReviewDraft?.rating)
     const comment = String(appReviewDraft?.comment || '').trim()
 
@@ -4447,6 +4514,7 @@ function App() {
   }
 
   const deleteAppReview = async (idReview) => {
+    // Borra reseña de plataforma con feedback y animacion de salida.
     const confirmed = window.confirm('¿Eliminar esta reseña de forma permanente?')
     if (!confirmed) return
 

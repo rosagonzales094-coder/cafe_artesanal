@@ -5,16 +5,19 @@ import path from 'node:path'
 
 dotenv.config()
 
+// Normaliza flags de entorno tipo booleano para configuracion flexible.
 function toBoolean(value, fallback = false) {
   if (value === undefined) return fallback
   return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase())
 }
 
 function loadSslCa() {
+  // Prioriza CA directa desde variable de entorno.
   if (process.env.DB_SSL_CA) {
     return process.env.DB_SSL_CA.replace(/\\n/g, '\n')
   }
 
+  // Permite cargar CA desde archivo configurado por variable.
   if (process.env.DB_SSL_CA_FILE) {
     const providedPath = path.isAbsolute(process.env.DB_SSL_CA_FILE)
       ? process.env.DB_SSL_CA_FILE
@@ -27,6 +30,7 @@ function loadSslCa() {
     }
   }
 
+  // Fallback a rutas comunes dentro del proyecto.
   const candidateFiles = [
     path.resolve(process.cwd(), 'ca.pem'),
     path.resolve(process.cwd(), 'certs', 'ca.pem'),
@@ -46,6 +50,7 @@ function loadSslCa() {
 }
 
 function resolveConnectionConfig() {
+  // Soporta conexion via DB_URL o por variables separadas.
   if (!process.env.DB_URL) {
     return {
       host: process.env.DB_HOST || 'localhost',
@@ -67,6 +72,7 @@ function resolveConnectionConfig() {
 }
 
 function resolveSslConfig() {
+  // Habilita SSL si el entorno lo exige o lo activa explicitamente.
   const sslMode = (process.env.DB_SSL_MODE || '').toLowerCase()
   const sslEnabled =
     toBoolean(process.env.DB_SSL, false) || sslMode === 'require' || sslMode === 'verify-ca'
@@ -94,6 +100,7 @@ function resolveSslConfig() {
   }
 }
 
+// Crea un pool reutilizable para toda la API.
 const baseConfig = resolveConnectionConfig()
 const ssl = resolveSslConfig()
 

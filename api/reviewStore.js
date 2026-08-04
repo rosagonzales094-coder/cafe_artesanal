@@ -1,9 +1,11 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 
+// Store JSON de reseñas para mantener historial y conversaciones.
 const storePath = path.resolve(process.cwd(), 'api', 'data', 'reviews.json')
 
 async function ensureStoreFile() {
+  // Garantiza existencia del archivo para operaciones de lectura/escritura.
   try {
     await fs.access(storePath)
   } catch {
@@ -16,6 +18,7 @@ async function readReviews() {
   await ensureStoreFile()
   const raw = await fs.readFile(storePath, 'utf8')
 
+  // Fallback seguro ante JSON invalido.
   try {
     const parsed = JSON.parse(raw)
     return Array.isArray(parsed) ? parsed : []
@@ -24,12 +27,14 @@ async function readReviews() {
   }
 }
 
+// Usa created_at para ordenar respuestas y reseñas cronologicamente.
 function getReviewDateMs(review) {
   const dateMs = new Date(review?.created_at || 0).getTime()
   return Number.isFinite(dateMs) ? dateMs : 0
 }
 
 async function writeReviews(reviews, options = {}) {
+  // preserveExisting=true evita perder reseñas cuando llega un subset parcial.
   await ensureStoreFile()
   const { preserveExisting = true } = options
   const existing = await readReviews()
@@ -53,10 +58,12 @@ async function writeReviews(reviews, options = {}) {
 }
 
 export async function getAllReviews() {
+  // Punto unico de lectura del store de reseñas.
   return readReviews()
 }
 
 export async function addReview(review) {
+  // Genera id incremental y limpia campos para persistencia estable.
   const reviews = await readReviews()
   const nextId = reviews.reduce(
     (max, currentReview) => Math.max(max, Number(currentReview.id_review) || 0),
@@ -82,6 +89,7 @@ export async function addReview(review) {
 }
 
 export async function addReviewConversationReply(idReview, replyData) {
+  // Inserta respuesta en hilo de conversacion manteniendo secuencia id_reply.
   const reviews = await readReviews()
   const targetIndex = reviews.findIndex(
     (review) => Number(review.id_review) === Number(idReview),
@@ -120,6 +128,7 @@ export async function addReviewConversationReply(idReview, replyData) {
 }
 
 export async function deleteReviewConversationReply(idReview, idReply) {
+  // Retorna false si la respuesta no existe y null si la reseña no existe.
   const reviews = await readReviews()
   const targetIndex = reviews.findIndex(
     (review) => Number(review.id_review) === Number(idReview),
@@ -152,6 +161,7 @@ export async function deleteReviewConversationReply(idReview, idReply) {
 }
 
 export async function updateReviewReply(idReview, replyData) {
+  // Actualiza respuesta oficial del admin dentro de la reseña.
   const reviews = await readReviews()
   const targetIndex = reviews.findIndex(
     (review) => Number(review.id_review) === Number(idReview),
@@ -178,6 +188,7 @@ export async function updateReviewReply(idReview, replyData) {
 }
 
 export async function deleteReviewById(idReview) {
+  // preserveExisting=false para reescribir exactamente el resultado filtrado.
   const reviews = await readReviews()
   const nextReviews = reviews.filter(
     (review) => Number(review.id_review) !== Number(idReview),
