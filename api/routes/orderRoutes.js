@@ -21,7 +21,13 @@ function normalizeText(value) {
     .toLowerCase()
 }
 
-function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
+function getDeliveryQuote(
+  formaEntrega,
+  provinciaEntrega,
+  ciudadEntrega,
+  sectorEntrega,
+  direccionEntrega,
+) {
   if (formaEntrega !== 'ENTREGA_DOMICILIO') {
     return {
       fee: 0,
@@ -31,19 +37,29 @@ function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
 
   const provincia = normalizeText(provinciaEntrega)
   const ciudad = normalizeText(ciudadEntrega)
+  const sector = normalizeText(sectorEntrega)
+  const direccion = normalizeText(direccionEntrega)
+  const locationText = `${provincia} ${ciudad} ${sector} ${direccion}`.trim()
 
-  if (ciudad.includes('zaruma')) {
+  if (!locationText) {
+    return {
+      fee: 0,
+      distanceLabel: 'Completa la ubicación para calcular',
+    }
+  }
+
+  if (locationText.includes('zaruma')) {
     return {
       fee: 2.5,
       distanceLabel: 'Cerca de Zaruma',
     }
   }
 
-  if (provincia.includes('el oro')) {
+  if (provincia.includes('el oro') || locationText.includes('el oro')) {
     if (
-      ciudad.includes('portovelo') ||
-      ciudad.includes('pinas') ||
-      ciudad.includes('atahualpa')
+      locationText.includes('portovelo') ||
+      locationText.includes('pinas') ||
+      locationText.includes('atahualpa')
     ) {
       return {
         fee: 3.5,
@@ -52,11 +68,11 @@ function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
     }
 
     if (
-      ciudad.includes('machala') ||
-      ciudad.includes('pasaje') ||
-      ciudad.includes('santa rosa') ||
-      ciudad.includes('huaquillas') ||
-      ciudad.includes('arenillas')
+      locationText.includes('machala') ||
+      locationText.includes('pasaje') ||
+      locationText.includes('santa rosa') ||
+      locationText.includes('huaquillas') ||
+      locationText.includes('arenillas')
     ) {
       return {
         fee: 5,
@@ -70,14 +86,24 @@ function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
     }
   }
 
-  if (provincia.includes('loja') || provincia.includes('azuay')) {
+  if (
+    provincia.includes('loja') ||
+    provincia.includes('azuay') ||
+    locationText.includes('loja') ||
+    locationText.includes('azuay')
+  ) {
     return {
       fee: 6.5,
       distanceLabel: 'Provincia vecina de Zaruma',
     }
   }
 
-  if (provincia.includes('zamora chinchipe') || provincia.includes('canar')) {
+  if (
+    provincia.includes('zamora chinchipe') ||
+    provincia.includes('canar') ||
+    locationText.includes('zamora chinchipe') ||
+    locationText.includes('canar')
+  ) {
     return {
       fee: 7.5,
       distanceLabel: 'Provincia más lejana',
@@ -206,7 +232,13 @@ router.post('/', requireAuth, async (req, res) => {
 
     const total = Number(subtotal.toFixed(2))
     const iva = Number((subtotal * 0.15).toFixed(2))
-    const deliveryQuote = getDeliveryQuote(forma_entrega, provinciaEntrega, ciudadEntrega)
+    const deliveryQuote = getDeliveryQuote(
+      forma_entrega,
+      provinciaEntrega,
+      ciudadEntrega,
+      sectorEntrega,
+      direccionEntrega,
+    )
     const costoEnvio = Number(deliveryQuote.fee || 0)
     const totalConIva = Number((subtotal + iva + costoEnvio).toFixed(2))
     const direccionEntregaCompleta =

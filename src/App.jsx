@@ -776,7 +776,13 @@ function normalizeLocationValue(value) {
     .toLowerCase()
 }
 
-function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
+function getDeliveryQuote(
+  formaEntrega,
+  provinciaEntrega,
+  ciudadEntrega,
+  sectorEntrega,
+  direccionEntrega,
+) {
   if (formaEntrega !== 'ENTREGA_DOMICILIO') {
     return {
       fee: 0,
@@ -786,19 +792,29 @@ function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
 
   const provincia = normalizeLocationValue(provinciaEntrega)
   const ciudad = normalizeLocationValue(ciudadEntrega)
+  const sector = normalizeLocationValue(sectorEntrega)
+  const direccion = normalizeLocationValue(direccionEntrega)
+  const locationText = `${provincia} ${ciudad} ${sector} ${direccion}`.trim()
 
-  if (ciudad.includes('zaruma')) {
+  if (!locationText) {
+    return {
+      fee: 0,
+      distanceLabel: 'Completa la ubicación para calcular',
+    }
+  }
+
+  if (locationText.includes('zaruma')) {
     return {
       fee: 2.5,
       distanceLabel: 'Cerca de Zaruma',
     }
   }
 
-  if (provincia.includes('el oro')) {
+  if (provincia.includes('el oro') || locationText.includes('el oro')) {
     if (
-      ciudad.includes('portovelo') ||
-      ciudad.includes('pinas') ||
-      ciudad.includes('atahualpa')
+      locationText.includes('portovelo') ||
+      locationText.includes('pinas') ||
+      locationText.includes('atahualpa')
     ) {
       return {
         fee: 3.5,
@@ -807,11 +823,11 @@ function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
     }
 
     if (
-      ciudad.includes('machala') ||
-      ciudad.includes('pasaje') ||
-      ciudad.includes('santa rosa') ||
-      ciudad.includes('huaquillas') ||
-      ciudad.includes('arenillas')
+      locationText.includes('machala') ||
+      locationText.includes('pasaje') ||
+      locationText.includes('santa rosa') ||
+      locationText.includes('huaquillas') ||
+      locationText.includes('arenillas')
     ) {
       return {
         fee: 5,
@@ -825,14 +841,24 @@ function getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega) {
     }
   }
 
-  if (provincia.includes('loja') || provincia.includes('azuay')) {
+  if (
+    provincia.includes('loja') ||
+    provincia.includes('azuay') ||
+    locationText.includes('loja') ||
+    locationText.includes('azuay')
+  ) {
     return {
       fee: 6.5,
       distanceLabel: 'Provincia vecina de Zaruma',
     }
   }
 
-  if (provincia.includes('zamora chinchipe') || provincia.includes('canar')) {
+  if (
+    provincia.includes('zamora chinchipe') ||
+    provincia.includes('canar') ||
+    locationText.includes('zamora chinchipe') ||
+    locationText.includes('canar')
+  ) {
     return {
       fee: 7.5,
       distanceLabel: 'Provincia más lejana',
@@ -3093,8 +3119,21 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
     [subtotalProductos],
   )
   const deliveryQuote = useMemo(
-    () => getDeliveryQuote(formaEntrega, provinciaEntrega, ciudadEntrega),
-    [formaEntrega, provinciaEntrega, ciudadEntrega],
+    () =>
+      getDeliveryQuote(
+        formaEntrega,
+        provinciaEntrega,
+        ciudadEntrega,
+        sectorEntrega,
+        direccionEntrega,
+      ),
+    [
+      formaEntrega,
+      provinciaEntrega,
+      ciudadEntrega,
+      sectorEntrega,
+      direccionEntrega,
+    ],
   )
   const totalConIva = useMemo(
     () => Number((subtotalProductos + iva + deliveryQuote.fee).toFixed(2)),
