@@ -3261,12 +3261,25 @@ function statusLabelByOrderState(order) {
   return 'Pendiente de validación del depósito'
 }
 
+function hasPaymentProofReference(order) {
+  return Boolean(String(order?.referencia_deposito || '').trim())
+}
+
+function canClientDeleteOrder(order) {
+  const status = String(order?.estado || '').toUpperCase()
+  return status === 'PENDIENTE' && !hasPaymentProofReference(order)
+}
+
 function MyOrders({ token, onNotify }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [deletingOrderId, setDeletingOrderId] = useState(null)
   const [clearingHistory, setClearingHistory] = useState(false)
   const previousStatusesRef = useRef(new Map())
+  const deletableOrdersCount = useMemo(
+    () => orders.filter((order) => canClientDeleteOrder(order)).length,
+    [orders],
+  )
 
   const loadOrders = useCallback(async () => {
     try {
@@ -3332,7 +3345,7 @@ function MyOrders({ token, onNotify }) {
 
   const clearHistory = async () => {
     const confirmed = window.confirm(
-      'Esto eliminará todo tu historial de pedidos. ¿Deseas continuar?',
+      'Solo se eliminarán pedidos pendientes sin comprobante enviado. ¿Deseas continuar?',
     )
     if (!confirmed) return
 
@@ -3385,9 +3398,11 @@ function MyOrders({ token, onNotify }) {
             className="btn btn-danger"
             type="button"
             onClick={clearHistory}
-            disabled={clearingHistory}
+            disabled={clearingHistory || deletableOrdersCount === 0}
           >
-            {clearingHistory ? 'Eliminando historial...' : 'Eliminar historial'}
+            {clearingHistory
+              ? 'Eliminando pedidos...'
+              : 'Eliminar pedidos sin comprobante'}
           </button>
         </div>
       </div>
@@ -3410,7 +3425,7 @@ function MyOrders({ token, onNotify }) {
               <p>Referencia depósito: {order.referencia_deposito || '-'}</p>
               <p>{formatDeliveryText(order.forma_entrega, order.direccion_entrega)}</p>
               <p className="order-status">{statusLabelByOrderState(order)}</p>
-              {order.estado === 'PENDIENTE' ? (
+              {canClientDeleteOrder(order) ? (
                 <button
                   className="btn btn-danger"
                   type="button"
@@ -3421,6 +3436,10 @@ function MyOrders({ token, onNotify }) {
                     ? 'Eliminando...'
                     : 'Eliminar pedido'}
                 </button>
+              ) : order.estado === 'PENDIENTE' ? (
+                <p className="status-text">
+                  Este pedido no se puede eliminar porque ya tiene comprobante enviado.
+                </p>
               ) : null}
             </article>
           ))}

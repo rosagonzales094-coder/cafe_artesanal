@@ -3,7 +3,6 @@ import pool from '../db.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
 import {
   deleteOrderById,
-  deleteOrdersByClient,
   getAllOrders,
   getOrderById,
   getOrdersByClient,
@@ -610,9 +609,10 @@ router.delete('/my/:idVenta', requireAuth, async (req, res) => {
     await connection.beginTransaction()
 
     const [saleRows] = await connection.query(
-      `SELECT id_venta, estado, id_cliente
-       FROM ventas
-       WHERE id_venta = ?
+      `SELECT v.id_venta, v.estado, v.id_cliente, p.referencia AS referencia_pago
+       FROM ventas v
+       LEFT JOIN pagos p ON p.id_venta = v.id_venta
+       WHERE v.id_venta = ?
        FOR UPDATE`,
       [idVenta],
     )
@@ -631,6 +631,14 @@ router.delete('/my/:idVenta', requireAuth, async (req, res) => {
     if (sale.estado !== 'PENDIENTE') {
       await connection.rollback()
       return res.status(409).json({ message: 'Solo puedes eliminar pedidos pendientes' })
+    }
+
+    const referenciaPago = String(sale.referencia_pago || '').trim()
+    if (referenciaPago) {
+      await connection.rollback()
+      return res.status(409).json({
+        message: 'Solo puedes eliminar pedidos sin comprobante enviado',
+      })
     }
 
     await connection.query(
@@ -681,49 +689,70 @@ router.delete('/my', requireAuth, async (req, res) => {
       return res.json({ message: 'No tienes pedidos para eliminar' })
     }
 
-    const [approvedRows] = await connection.query(
-      `SELECT dv.id_producto, dv.cantidad
-       FROM detalle_venta dv
-       INNER JOIN ventas v ON v.id_venta = dv.id_venta
-       WHERE v.id_cliente = ? AND v.estado = 'PAGADA'`,
-      [req.user.id_cliente],
+    const ids = sales.map((sale) => Number(sale.id_venta)).filter(Boolean)
+    const placeholders = ids.map(() => '?').join(',')
+
+    const [paymentRows] = await connection.query(
+      `SELECT id_venta, referencia
+       FROM pagos
+       WHERE id_venta IN (${placeholders})
+       FOR UPDATE`,
+      ids,
     )
 
-    for (const row of approvedRows) {
-      await connection.query(
-        `UPDATE productos
-         SET stock = stock + ?
-         WHERE id_producto = ?`,
-        [Number(row.cantidad), Number(row.id_producto)],
-      )
+    const paymentReferenceBySale = new Map()
+    for (const row of paymentRows) {
+      const id = Number(row.id_venta)
+      const reference = String(row.referencia || '').trim()
+      if (reference) {
+        paymentReferenceBySale.set(id, true)
+      }
     }
 
+    const deletableIds = sales
+      .filter((sale) => {
+        const idVenta = Number(sale.id_venta)
+        const isPending = String(sale.estado || '').toUpperCase() === 'PENDIENTE'
+        const hasPaymentProof = paymentReferenceBySale.get(idVenta) === true
+        return isPending && !hasPaymentProof
+      })
+      .map((sale) => Number(sale.id_venta))
+
+    if (deletableIds.length === 0) {
+      await connection.rollback()
+      return res.status(409).json({
+        message: 'Solo puedes eliminar pedidos pendientes sin comprobante enviado',
+      })
+    }
+
+    const deletablePlaceholders = deletableIds.map(() => '?').join(',')
+
     await connection.query(
-      `DELETE dv
-       FROM detalle_venta dv
-       INNER JOIN ventas v ON v.id_venta = dv.id_venta
-       WHERE v.id_cliente = ?`,
-      [req.user.id_cliente],
+      `DELETE FROM detalle_venta
+       WHERE id_venta IN (${deletablePlaceholders})`,
+      deletableIds,
     )
 
     await connection.query(
-      `DELETE p
-       FROM pagos p
-       INNER JOIN ventas v ON v.id_venta = p.id_venta
-       WHERE v.id_cliente = ?`,
-      [req.user.id_cliente],
+      `DELETE FROM pagos
+       WHERE id_venta IN (${deletablePlaceholders})`,
+      deletableIds,
     )
 
     await connection.query(
       `DELETE FROM ventas
-       WHERE id_cliente = ?`,
-      [req.user.id_cliente],
+       WHERE id_venta IN (${deletablePlaceholders})`,
+      deletableIds,
     )
 
-    await deleteOrdersByClient(req.user.id_cliente)
+    for (const idVenta of deletableIds) {
+      await deleteOrderById(idVenta)
+    }
 
     await connection.commit()
-    return res.json({ message: 'Historial de pedidos eliminado correctamente' })
+    return res.json({
+      message: `Se eliminaron ${deletableIds.length} pedido(s) sin comprobante enviado.`,
+    })
   } catch (error) {
     if (connection) {
       await connection.rollback()
