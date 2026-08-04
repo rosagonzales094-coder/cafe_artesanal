@@ -3584,7 +3584,7 @@ function AdminRevenueSummary({ token, onNotify }) {
   return (
     <section className="card revenue-card">
       <div className="inventory-head">
-        <h2>Ingresos del negocio (automatico)</h2>
+        <h2>Ingresos del negocio</h2>
         <button className="btn btn-ghost" type="button" onClick={loadRevenue}>
           Actualizar
         </button>
