@@ -4259,26 +4259,7 @@ function App() {
           <img
             src={BRAND_LOGO_URL}
             alt="Logo COOFFE DRINK"
-            className="brand-logo brand-logo-clickable"
-            role="button"
-            tabIndex={0}
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              openPreviewImage({
-                src: BRAND_LOGO_URL,
-                alt: 'Logo COOFFE DRINK',
-              })
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== 'Enter' && event.key !== ' ') return
-              event.preventDefault()
-              event.stopPropagation()
-              openPreviewImage({
-                src: BRAND_LOGO_URL,
-                alt: 'Logo COOFFE DRINK',
-              })
-            }}
+            className="brand-logo"
           />
           <span className="brand-stack">
             <span className="brand-text">COOFFE DR!NK</span>
