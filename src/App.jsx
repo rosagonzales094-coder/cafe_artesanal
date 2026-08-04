@@ -1149,6 +1149,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [categoryEditName, setCategoryEditName] = useState('')
   const [categorySaving, setCategorySaving] = useState(false)
   const adminFormRef = useRef(null)
+  const adminImageInputRef = useRef(null)
 
   const isAdmin = String(user?.rol || '').trim().toLowerCase() === 'administrador'
   const featuredCode = useMemo(() => {
@@ -1353,6 +1354,17 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   }
 
   const previewImageUrl = adminForm.imagen_url.trim() || PRODUCT_IMAGE_FALLBACKS[0]
+
+  const focusImageInput = () => {
+    adminImageInputRef.current?.focus()
+  }
+
+  const clearProductImage = () => {
+    setAdminForm((prev) => ({ ...prev, imagen_url: '' }))
+    window.requestAnimationFrame(() => {
+      adminImageInputRef.current?.focus()
+    })
+  }
 
   const resetAdminForm = () => {
     setAdminForm(INITIAL_ADMIN_PRODUCT_FORM)
@@ -1981,138 +1993,198 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               ) : null}
             <form
               ref={adminFormRef}
-              className="form-grid two-cols"
+              className="admin-edit-layout"
               onSubmit={onAdminSubmit}
             >
-              <select
-                name="id_categoria"
-                value={adminForm.id_categoria}
-                onChange={onAdminChange}
-                required
-              >
-                <option value="">Categoría</option>
-                {adminMeta.categorias.map((categoria) => (
-                  <option key={categoria.id_categoria} value={categoria.id_categoria}>
-                    {categoria.nombre}
-                  </option>
-                ))}
-              </select>
+              <div className="admin-edit-main">
+                <section className="admin-edit-card">
+                  <div className="admin-edit-card-header">
+                    <h4>Información general</h4>
+                    <p>Datos base del producto y su clasificación.</p>
+                  </div>
+                  <div className="admin-edit-grid">
+                    <select
+                      name="id_categoria"
+                      value={adminForm.id_categoria}
+                      onChange={onAdminChange}
+                      required
+                    >
+                      <option value="">Categoría</option>
+                      {adminMeta.categorias.map((categoria) => (
+                        <option key={categoria.id_categoria} value={categoria.id_categoria}>
+                          {categoria.nombre}
+                        </option>
+                      ))}
+                    </select>
 
-              <select
-                name="id_proveedor"
-                value={adminForm.id_proveedor}
-                onChange={onAdminChange}
-                required
-              >
-                <option value="">Proveedor</option>
-                {adminMeta.proveedores.map((proveedor) => (
-                  <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
-                    {proveedor.empresa}
-                  </option>
-                ))}
-              </select>
+                    <select
+                      name="id_proveedor"
+                      value={adminForm.id_proveedor}
+                      onChange={onAdminChange}
+                      required
+                    >
+                      <option value="">Proveedor</option>
+                      {adminMeta.proveedores.map((proveedor) => (
+                        <option key={proveedor.id_proveedor} value={proveedor.id_proveedor}>
+                          {proveedor.empresa}
+                        </option>
+                      ))}
+                    </select>
 
-              <input
-                name="codigo"
-                placeholder="Código"
-                value={adminForm.codigo}
-                onChange={onAdminChange}
-                required
-              />
-              <input
-                name="nombre"
-                placeholder="Nombre"
-                value={adminForm.nombre}
-                onChange={onAdminChange}
-                required
-              />
-              <input
-                className="span-all"
-                name="imagen_url"
-                placeholder="Imagen del producto (URL o ruta)"
-                value={adminForm.imagen_url}
-                onChange={onAdminChange}
-              />
-              <div className="span-all image-preview-panel">
-                <span>Vista previa de imagen</span>
-                <img src={previewImageUrl} alt="Vista previa del producto" />
+                    <input
+                      name="codigo"
+                      placeholder="Código del producto"
+                      value={adminForm.codigo}
+                      onChange={onAdminChange}
+                      required
+                    />
+                    <input
+                      name="nombre"
+                      placeholder="Nombre del producto"
+                      value={adminForm.nombre}
+                      onChange={onAdminChange}
+                      required
+                    />
+                    <textarea
+                      className="span-all"
+                      name="descripcion"
+                      placeholder="Descripción"
+                      rows="3"
+                      value={adminForm.descripcion}
+                      onChange={onAdminChange}
+                    />
+                  </div>
+                </section>
+
+                <section className="admin-edit-card">
+                  <div className="admin-edit-card-header">
+                    <h4>Precios</h4>
+                    <p>Define el costo y el valor de venta.</p>
+                  </div>
+                  <div className="admin-edit-grid">
+                    <input
+                      name="precio_compra"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Precio de compra"
+                      value={adminForm.precio_compra}
+                      onChange={onAdminChange}
+                      required
+                    />
+                    <input
+                      name="precio"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Precio de venta"
+                      value={adminForm.precio}
+                      onChange={onAdminChange}
+                      required
+                    />
+                  </div>
+                </section>
+
+                <section className="admin-edit-card">
+                  <div className="admin-edit-card-header">
+                    <h4>Inventario y presentación</h4>
+                    <p>Control de existencias y unidad comercial.</p>
+                  </div>
+                  <div className="admin-edit-grid">
+                    <input
+                      name="stock"
+                      type="number"
+                      min="0"
+                      placeholder="Cantidad disponible"
+                      value={adminForm.stock}
+                      onChange={onAdminChange}
+                      required
+                    />
+                    <input
+                      name="stock_minimo"
+                      type="number"
+                      min="0"
+                      placeholder="Stock mínimo"
+                      value={adminForm.stock_minimo}
+                      onChange={onAdminChange}
+                      required
+                    />
+                    <input
+                      name="unidad"
+                      placeholder="Unidad de venta"
+                      value={adminForm.unidad}
+                      onChange={onAdminChange}
+                    />
+                  </div>
+                </section>
               </div>
-              <input
-                name="precio_compra"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Precio de compra"
-                value={adminForm.precio_compra}
-                onChange={onAdminChange}
-                required
-              />
-              <input
-                name="precio"
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Precio de venta"
-                value={adminForm.precio}
-                onChange={onAdminChange}
-                required
-              />
-              <input
-                name="stock"
-                type="number"
-                min="0"
-                placeholder="Stock"
-                value={adminForm.stock}
-                onChange={onAdminChange}
-                required
-              />
-              <input
-                name="stock_minimo"
-                type="number"
-                min="0"
-                placeholder="Stock mínimo"
-                value={adminForm.stock_minimo}
-                onChange={onAdminChange}
-                required
-              />
-              <input
-                name="unidad"
-                placeholder="Unidad"
-                value={adminForm.unidad}
-                onChange={onAdminChange}
-              />
-              <select name="estado" value={adminForm.estado} onChange={onAdminChange}>
-                <option value="ACTIVO">ACTIVO</option>
-                <option value="INACTIVO">INACTIVO</option>
-              </select>
-              <input
-                className="span-all"
-                name="descripcion"
-                placeholder="Descripción"
-                value={adminForm.descripcion}
-                onChange={onAdminChange}
-              />
+
+              <aside className="admin-edit-side">
+                <section className="admin-edit-card admin-image-card">
+                  <div className="admin-edit-card-header">
+                    <h4>Imagen del producto</h4>
+                    <p>Pega una URL o ruta local para mostrar la primera imagen.</p>
+                  </div>
+                  <div className="image-preview-panel">
+                    <img src={previewImageUrl} alt="Vista previa del producto" />
+                  </div>
+                  <div className="admin-image-actions">
+                    <button className="btn btn-ghost" type="button" onClick={focusImageInput}>
+                      Cambiar imagen
+                    </button>
+                    <button
+                      className="btn btn-danger"
+                      type="button"
+                      onClick={clearProductImage}
+                      disabled={!adminForm.imagen_url.trim()}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                  <input
+                    ref={adminImageInputRef}
+                    className="span-all"
+                    name="imagen_url"
+                    placeholder="Imagen del producto (URL o ruta)"
+                    value={adminForm.imagen_url}
+                    onChange={onAdminChange}
+                  />
+                </section>
+
+                <section className="admin-edit-card admin-state-card">
+                  <div className="admin-edit-card-header">
+                    <h4>Estado</h4>
+                    <p>Activa o desactiva el producto en el catálogo.</p>
+                  </div>
+                  <select name="estado" value={adminForm.estado} onChange={onAdminChange}>
+                    <option value="ACTIVO">Producto disponible</option>
+                    <option value="INACTIVO">Producto no disponible</option>
+                  </select>
+                </section>
+              </aside>
 
               {adminMessage ? (
                 <p className="span-all status-text admin-status">{adminMessage}</p>
               ) : null}
 
-              <button className="btn btn-solid" type="submit" disabled={adminSaving}>
-                {adminSaving
-                  ? 'Guardando...'
-                  : editingProductId
-                    ? 'Actualizar producto'
-                    : 'Agregar al inventario'}
-              </button>
-              {editingProductId ? (
-                <button
-                  className="btn btn-ghost"
-                  type="button"
-                  onClick={resetAdminForm}
-                >
-                  Cancelar edición
+              <div className="span-all admin-edit-actions">
+                <button className="btn btn-solid" type="submit" disabled={adminSaving}>
+                  {adminSaving
+                    ? 'Guardando...'
+                    : editingProductId
+                      ? 'Guardar cambios'
+                      : 'Agregar al inventario'}
                 </button>
-              ) : null}
+                {editingProductId ? (
+                  <button
+                    className="btn btn-ghost"
+                    type="button"
+                    onClick={resetAdminForm}
+                  >
+                    Cancelar
+                  </button>
+                ) : null}
+              </div>
             </form>
           </section>
         </>
