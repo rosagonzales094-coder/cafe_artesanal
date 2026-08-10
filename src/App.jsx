@@ -98,6 +98,60 @@ const PRODUCT_UNIT_OPTIONS = [
   { value: 'Paquete', label: 'Paquete' },
 ]
 
+const ECUADOR_PROVINCES = [
+  'Azuay',
+  'Bolivar',
+  'Canar',
+  'Carchi',
+  'Chimborazo',
+  'Cotopaxi',
+  'El Oro',
+  'Esmeraldas',
+  'Galapagos',
+  'Guayas',
+  'Imbabura',
+  'Loja',
+  'Los Rios',
+  'Manabi',
+  'Morona Santiago',
+  'Napo',
+  'Orellana',
+  'Pastaza',
+  'Pichincha',
+  'Santa Elena',
+  'Santo Domingo de los Tsachilas',
+  'Sucumbios',
+  'Tungurahua',
+  'Zamora Chinchipe',
+]
+
+const ECUADOR_CITIES_BY_PROVINCE = {
+  Azuay: ['Cuenca', 'Gualaceo', 'Paute', 'Sigsig'],
+  Bolivar: ['Guaranda', 'Chillanes', 'San Miguel'],
+  Canar: ['Azogues', 'Canar', 'La Troncal'],
+  Carchi: ['Tulcan', 'Mira', 'Montufar'],
+  Chimborazo: ['Riobamba', 'Alausi', 'Guano'],
+  Cotopaxi: ['Latacunga', 'La Mana', 'Pujili'],
+  'El Oro': ['Machala', 'Pasaje', 'Santa Rosa', 'Zaruma'],
+  Esmeraldas: ['Esmeraldas', 'Atacames', 'Quininde'],
+  Galapagos: ['Puerto Ayora', 'Puerto Baquerizo Moreno', 'Puerto Villamil'],
+  Guayas: ['Guayaquil', 'Duran', 'Samborondon', 'Milagro'],
+  Imbabura: ['Ibarra', 'Otavalo', 'Cotacachi', 'Antonio Ante'],
+  Loja: ['Loja', 'Catamayo', 'Macara'],
+  'Los Rios': ['Babahoyo', 'Quevedo', 'Ventanas'],
+  Manabi: ['Portoviejo', 'Manta', 'Chone', 'Jipijapa'],
+  'Morona Santiago': ['Macas', 'Gualaquiza', 'Sucua'],
+  Napo: ['Tena', 'Archidona', 'El Chaco'],
+  Orellana: ['Francisco de Orellana', 'La Joya de los Sachas'],
+  Pastaza: ['Puyo', 'Mera', 'Santa Clara'],
+  Pichincha: ['Quito', 'Cayambe', 'Mejia', 'Ruminahui'],
+  'Santa Elena': ['Santa Elena', 'La Libertad', 'Salinas'],
+  'Santo Domingo de los Tsachilas': ['Santo Domingo', 'La Concordia'],
+  Sucumbios: ['Nueva Loja', 'Shushufindi', 'Cascales'],
+  Tungurahua: ['Ambato', 'Banos de Agua Santa', 'Pelileo'],
+  'Zamora Chinchipe': ['Zamora', 'Yantzaza', 'El Pangui'],
+}
+
 async function uploadProductImageFile(token, file) {
   // Carga binaria de imagen al backend y devuelve URL publica.
   const formData = new FormData()
@@ -3282,6 +3336,10 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
     () => Number((subtotalProductos + iva + deliveryQuote.fee).toFixed(2)),
     [subtotalProductos, iva, deliveryQuote.fee],
   )
+  const cityOptions = useMemo(
+    () => ECUADOR_CITIES_BY_PROVINCE[provinciaEntrega] || [],
+    [provinciaEntrega],
+  )
   const hasDeliveryDestination = useMemo(() => {
     const provinciaEntregaLimpia = String(provinciaEntrega || '').trim()
     const ciudadEntregaLimpia = String(ciudadEntrega || '').trim()
@@ -3559,21 +3617,41 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           <div className="delivery-address-grid">
             <label className="delivery-field">
               Provincia
-              <input
-                placeholder="Ej: El Oro"
+              <select
                 value={provinciaEntrega}
-                onChange={(event) => setProvinciaEntrega(event.target.value)}
+                onChange={(event) => {
+                  setProvinciaEntrega(event.target.value)
+                  setCiudadEntrega('')
+                }}
                 required
-              />
+              >
+                <option value="">Selecciona provincia</option>
+                {ECUADOR_PROVINCES.map((province) => (
+                  <option key={province} value={province}>
+                    {province}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="delivery-field">
               Ciudad
-              <input
-                placeholder="Ej: Zaruma"
+              <select
                 value={ciudadEntrega}
                 onChange={(event) => setCiudadEntrega(event.target.value)}
+                disabled={!provinciaEntrega}
                 required
-              />
+              >
+                <option value="">
+                  {provinciaEntrega
+                    ? 'Selecciona ciudad'
+                    : 'Selecciona provincia primero'}
+                </option>
+                {cityOptions.map((city) => (
+                  <option key={city} value={city}>
+                    {city}
+                  </option>
+                ))}
+              </select>
             </label>
             <label className="delivery-field">
               Sector
