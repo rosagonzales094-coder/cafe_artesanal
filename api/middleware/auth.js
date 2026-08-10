@@ -26,7 +26,7 @@ export function requireAdmin(req, res, next) {
 
   const normalizedRole = String(req.user.rol).trim().toLowerCase()
   if (normalizedRole !== 'administrador') {
-    return res.status(403).json({ message: 'Solo administrador puede realizar esta accion' })
+    return res.status(403).json({ message: 'Solo Coffee Drinks puede realizar esta accion' })
   }
 
   return next()

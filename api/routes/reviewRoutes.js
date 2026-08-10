@@ -243,7 +243,7 @@ router.post('/', requireAuth, async (req, res) => {
 })
 
 router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
-  // Respuesta oficial de administrador sobre una reseña.
+  // Respuesta oficial de Coffee Drinks sobre una reseña.
   const idReview = Number(req.params.idReview)
   const reply = normalizeReply(req.body?.reply)
 
@@ -271,8 +271,8 @@ router.post('/:idReview/reply', requireAuth, requireAdmin, async (req, res) => {
     const updatedReview = await updateReviewReply(idReview, {
       reply,
       reply_at: new Date().toISOString(),
-      reply_author_name: adminName || req.user.usuario || 'Administrador',
-      reply_usuario: admin?.usuario || req.user.usuario || 'Administrador',
+      reply_author_name: adminName || req.user.usuario || 'Coffee Drinks',
+      reply_usuario: admin?.usuario || req.user.usuario || 'Coffee Drinks',
     })
 
     if (!updatedReview) {

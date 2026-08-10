@@ -252,7 +252,7 @@ router.get('/my', requireAuth, async (req, res) => {
 })
 
 router.get('/admin/sales-summary', requireAuth, requireAdmin, async (req, res) => {
-  // Resumen agregado por administrador para panel de ingresos.
+  // Resumen agregado por Coffee Drinks para panel de ingresos.
   try {
     const [admins] = await pool.query(
       `SELECT id_usuario, nombres, apellidos, correo

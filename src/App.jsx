@@ -1971,6 +1971,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
   const previewImageUrl =
     adminForm.imagen_url.trim() || editingPreviewImageUrl || PRODUCT_IMAGE_FALLBACKS[0]
+  const hasCurrentPreviewImage = Boolean(adminForm.imagen_url.trim() || editingPreviewImageUrl)
 
   const openAdminImagePicker = () => {
     adminImageFileInputRef.current?.click()
@@ -2008,10 +2009,10 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     setEditingPreviewImageUrl('')
   }
 
-  const startEditing = (product) => {
+  const startEditing = (product, previewUrl = '') => {
     setAdminForm(mapProductToAdminForm(product))
     setEditingProductId(product.id_producto)
-    setEditingPreviewImageUrl(getProductImageUrl(product, 0))
+    setEditingPreviewImageUrl(previewUrl || getProductImageUrl(product, 0))
     setAdminMessage('')
 
     window.requestAnimationFrame(() => {
@@ -2879,7 +2880,9 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                   <p className="admin-image-hint">
                     {adminForm.imagen_url
                       ? 'Foto cargada en el sistema.'
-                      : 'Todavía no has seleccionado una foto.'}
+                      : hasCurrentPreviewImage
+                        ? 'Vista actual del producto. Puedes reemplazarla subiendo una nueva foto.'
+                        : 'Todavía no has seleccionado una foto.'}
                   </p>
                 </section>
 
@@ -2931,7 +2934,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                 <p className="status-text">No hay productos fuera del catálogo.</p>
               ) : (
                 <div className="admin-unavailable-list">
-                  {unavailableProducts.map((product) => {
+                  {unavailableProducts.map((product, index) => {
                     const status = String(product.estado || '').toUpperCase()
                     const stock = Number(product.stock) || 0
                     const reasonParts = []
@@ -2971,7 +2974,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                           <button
                             className="btn btn-ghost"
                             type="button"
-                            onClick={() => startEditing(product)}
+                            onClick={() => startEditing(product, getProductImageUrl(product, index))}
                           >
                             Editar
                           </button>
@@ -3005,7 +3008,6 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
             cartQuantityByProductId.get(product.id_producto) || 0
           const stockRestante = Math.max(stockActual - cantidadEnCarrito, 0)
           const esLimitada = getCatalogGroup(product) === 'LIMITADA'
-          const esCafe = ['ARTESANAL', 'LIMITADA'].includes(getCatalogGroup(product))
           const canShowReviews = isAdmin
             ? true
             : paidPurchasedProductIds.has(Number(product.id_producto))
@@ -3142,7 +3144,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                     <button
                       className="btn btn-ghost"
                       type="button"
-                      onClick={() => startEditing(product)}
+                      onClick={() => startEditing(product, getProductImageUrl(product, index))}
                     >
                       Editar
                     </button>
@@ -4006,18 +4008,6 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
   )
 }
 
-function statusLabelByOrderState(order) {
-  if (order.estado === 'PAGADA') {
-    return getApprovedOrderStatusText(order)
-  }
-
-  if (order.estado === 'ANULADA') {
-    return 'Rechazado por admin'
-  }
-
-  return 'Pendiente de validación del depósito'
-}
-
 function getMyOrderStatusBanner(order) {
   if (order.estado === 'PAGADA') {
     return {
@@ -4041,15 +4031,6 @@ function getMyOrderStatusBanner(order) {
     title: 'Pedido pendiente.',
     detail: 'Estamos validando tu comprobante de pago.',
   }
-}
-
-function hasPaymentProofReference(order) {
-  return Boolean(String(order?.referencia_deposito || '').trim())
-}
-
-function canClientDeleteOrder(order) {
-  const status = String(order?.estado || '').toUpperCase()
-  return status === 'PAGADA' || status === 'ANULADA'
 }
 
 function MyOrders({ token, onNotify }) {

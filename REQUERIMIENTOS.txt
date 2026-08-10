@@ -1,0 +1,132 @@
+REQUERIMIENTOS DEL PROYECTO CAFE ARTESANAL ZARUMA
+
+1. REQUERIMIENTOS DE SOFTWARE
+- Node.js 20 o superior
+- npm 10 o superior
+- MySQL 8 o compatible
+- Git opcional
+- Postman o Insomnia opcional para pruebas de API
+
+2. REQUERIMIENTOS DE BASE DE DATOS
+- Crear una base de datos llamada: cafe_artesanal
+- Ejecutar el archivo: Database/cafe_artesanal.sql
+- Ejecutar el archivo: Database/seed_productos_zaruma.sql
+
+3. REQUERIMIENTOS DE CONFIGURACION
+- Crear un archivo .env en la raiz del proyecto
+- Basarse en el archivo .env.example
+- Definir obligatoriamente:
+  JWT_SECRET
+  CLIENT_ORIGIN
+  DB_URL o DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+
+4. VARIABLES DE ENTORNO PRINCIPALES
+- PORT
+- CLIENT_ORIGIN
+- JWT_SECRET
+- DB_URL
+- DB_HOST
+- DB_PORT
+- DB_USER
+- DB_PASSWORD
+- DB_NAME
+- DB_SSL
+- DB_SSL_MODE
+- DB_SSL_CA
+- DB_SSL_CA_FILE
+- DB_CONNECTION_LIMIT
+- DB_CONNECT_TIMEOUT_MS
+- DB_KEEP_ALIVE
+- VITE_API_URL
+
+5. REQUERIMIENTOS PARA SSL CON AIVEN
+- Si se usa Aiven con SSL estricto, se necesita el archivo ca.pem
+- Si DB_SSL_MODE=verify-ca, se debe configurar:
+  DB_SSL_CA
+  o DB_SSL_CA_FILE
+  o colocar ca.pem en la raiz del proyecto
+
+6. DEPENDENCIAS DEL PROYECTO
+Dependencias principales:
+- express
+- cors
+- dotenv
+- mysql2
+- jsonwebtoken
+- bcryptjs
+- multer
+- react
+- react-dom
+- react-router-dom
+
+7. INSTALACION
+Ejecutar en la raiz del proyecto:
+
+npm install
+
+8. EJECUCION EN DESARROLLO
+API:
+
+npm run api
+
+Frontend:
+
+npm run dev
+
+9. VALIDACION BASICA
+Health check:
+
+GET /api/health
+
+Respuesta esperada:
+{ "ok": true, "service": "Cafe Artesanal API" }
+
+10. REQUERIMIENTOS FUNCIONALES IMPORTANTES
+- El registro requiere nombres, apellidos, telefono, correo, usuario y password
+- El telefono debe tener exactamente 10 digitos
+- La contraseña debe tener al menos 8 caracteres
+- El catalogo requiere autenticacion por token
+- Los pedidos requieren productos validos
+- El limite maximo es de 6 unidades de cafe por pedido
+- Solo se permiten los metodos de pago:
+  DEPOSITO_BANCARIO
+  TRANSFERENCIA_BANCARIA
+- Solo se puede reseñar un producto si fue comprado y pagado
+
+11. REQUERIMIENTOS DE PERMISOS
+- Algunas rutas requieren usuario autenticado
+- Algunas rutas requieren administrador
+- El SQL base crea un administrador de prueba:
+  usuario: admin
+  correo: admin@cafe.com
+  password inicial: Admin123
+
+12. REQUERIMIENTOS DE ARCHIVOS Y CARPETAS IMPORTANTES
+- api/server.js
+- api/db.js
+- api/routes/
+- api/data/orders.json
+- api/data/reviews.json
+- public/imagenes/uploads/
+- Database/cafe_artesanal.sql
+- Database/seed_productos_zaruma.sql
+- .env.example
+- render.yaml
+
+13. REQUERIMIENTOS PARA PRODUCCION
+- Configurar JWT_SECRET real
+- Configurar DB_URL o credenciales MySQL reales
+- Configurar CLIENT_ORIGIN con el dominio publicado
+- Generar build del frontend con:
+  npm run build
+- Iniciar API con:
+  npm start
+
+14. RECOMENDACION PARA ENTREGA A OTRA PERSONA
+Entregar junto con el proyecto:
+- este archivo REQUERIMIENTOS.txt
+- README.md
+- .env.example
+- Database/cafe_artesanal.sql
+- Database/seed_productos_zaruma.sql
+- ca.pem si se usa Aiven
