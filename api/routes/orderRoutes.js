@@ -645,7 +645,7 @@ router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res)
 })
 
 router.delete('/my/:idVenta', requireAuth, async (req, res) => {
-  // Elimina un pedido propio solo si sigue pendiente y sin comprobante.
+  // Elimina un pedido propio cuando ya fue aprobado o rechazado.
   const idVenta = Number(req.params.idVenta)
   if (!idVenta) {
     return res.status(400).json({ message: ORDER_MESSAGES.invalidSaleId })
@@ -676,16 +676,11 @@ router.delete('/my/:idVenta', requireAuth, async (req, res) => {
       return res.status(403).json({ message: ORDER_MESSAGES.notOwnerDeleteOrder })
     }
 
-    if (sale.estado !== ORDER_STATUS.PENDING) {
-      await connection.rollback()
-      return res.status(409).json({ message: ORDER_MESSAGES.onlyPendingCanDelete })
-    }
-
-    const referenciaPago = String(sale.referencia_pago || '').trim()
-    if (referenciaPago) {
+    const status = String(sale.estado || '').toUpperCase()
+    if (![ORDER_STATUS.PAID, ORDER_STATUS.CANCELED].includes(status)) {
       await connection.rollback()
       return res.status(409).json({
-        message: ORDER_MESSAGES.onlyNoProofCanDelete,
+        message: 'Solo puedes eliminar pedidos aprobados o rechazados',
       })
     }
 

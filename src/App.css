@@ -1170,6 +1170,67 @@ input:focus {
   margin-bottom: 1rem;
 }
 
+.admin-unavailable-panel {
+  margin-top: 0.2rem;
+  margin-bottom: 1rem;
+}
+
+.admin-unavailable-panel h3 {
+  margin: 0 0 0.7rem;
+  font-family: var(--font-title);
+  color: #ffefcf;
+}
+
+.admin-unavailable-list {
+  display: grid;
+  gap: 0.62rem;
+}
+
+.admin-unavailable-item {
+  border: 1px solid rgba(255, 210, 142, 0.28);
+  border-radius: 14px;
+  padding: 0.72rem;
+  background: rgba(39, 21, 12, 0.34);
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.admin-unavailable-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.admin-unavailable-thumb {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 214, 148, 0.32);
+  background: rgba(30, 15, 8, 0.4);
+}
+
+.admin-unavailable-name {
+  margin: 0;
+  color: #ffe8be;
+}
+
+.admin-unavailable-meta {
+  margin: 0.25rem 0 0;
+  color: #efcf9e;
+  font-size: 0.84rem;
+}
+
+.admin-unavailable-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .admin-panel h3 {
   margin-top: 0;
   margin-bottom: 0.8rem;
@@ -1774,6 +1835,18 @@ input:focus {
   gap: 0.7rem;
 }
 
+.order-group {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.order-group-title {
+  margin: 0.1rem 0 0;
+  color: #ffe8be;
+  font-size: 1rem;
+  font-family: var(--font-title);
+}
+
 .order-card {
   border: 1px solid rgba(255, 210, 142, 0.28);
   border-radius: 14px;
@@ -1857,6 +1930,39 @@ input:focus {
   gap: 0.45rem;
   color: #fbe0ac;
   background: rgba(255, 230, 191, 0.08);
+}
+
+.order-premium-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.order-delete-icon-btn {
+  width: 2.2rem;
+  height: 2.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 148, 148, 0.4);
+  background: rgba(134, 43, 43, 0.2);
+  color: #ffc2ba;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  transition: transform 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.order-delete-icon-btn:hover {
+  transform: translateY(-1px);
+  background: rgba(134, 43, 43, 0.34);
+  border-color: rgba(255, 148, 148, 0.62);
+}
+
+.order-delete-icon-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .order-premium-rows {

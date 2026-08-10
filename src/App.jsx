@@ -1693,6 +1693,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [editingProductId, setEditingProductId] = useState(null)
   const [adminSaving, setAdminSaving] = useState(false)
   const [adminDeletingId, setAdminDeletingId] = useState(null)
+  const [adminRestoringId, setAdminRestoringId] = useState(null)
   const [adminMessage, setAdminMessage] = useState('')
   const [catalogFilter, setCatalogFilter] = useState('TODOS')
   const [adminCategoryFilter, setAdminCategoryFilter] = useState('TODAS')
@@ -1704,6 +1705,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const adminFormRef = useRef(null)
   const adminImageFileInputRef = useRef(null)
   const [adminImageUploading, setAdminImageUploading] = useState(false)
+  const [editingPreviewImageUrl, setEditingPreviewImageUrl] = useState('')
 
   const isAdmin = String(user?.rol || '').trim().toLowerCase() === 'administrador'
   const featuredCode = useMemo(() => {
@@ -1780,6 +1782,16 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
       (product) => String(product.id_categoria) === String(adminCategoryFilterValue),
     )
   }, [isAdmin, visibleProducts, adminCategoryFilterValue])
+
+  const unavailableProducts = useMemo(() => {
+    if (!isAdmin) return []
+
+    return products.filter((product) => {
+      const status = String(product.estado || '').toUpperCase()
+      const stock = Number(product.stock) || 0
+      return status !== 'ACTIVO' || stock <= 0
+    })
+  }, [isAdmin, products])
 
   const cartQuantityByProductId = useMemo(() => {
     const map = new Map()
@@ -1951,7 +1963,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
   }
 
-  const previewImageUrl = adminForm.imagen_url.trim() || PRODUCT_IMAGE_FALLBACKS[0]
+  const previewImageUrl =
+    adminForm.imagen_url.trim() || editingPreviewImageUrl || PRODUCT_IMAGE_FALLBACKS[0]
 
   const openAdminImagePicker = () => {
     adminImageFileInputRef.current?.click()
@@ -1986,11 +1999,13 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const resetAdminForm = () => {
     setAdminForm(INITIAL_ADMIN_PRODUCT_FORM)
     setEditingProductId(null)
+    setEditingPreviewImageUrl('')
   }
 
   const startEditing = (product) => {
     setAdminForm(mapProductToAdminForm(product))
     setEditingProductId(product.id_producto)
+    setEditingPreviewImageUrl(getProductImageUrl(product, 0))
     setAdminMessage('')
 
     window.requestAnimationFrame(() => {
@@ -2070,6 +2085,47 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
       onNotify(requestError.message)
     } finally {
       setAdminDeletingId(null)
+    }
+  }
+
+  const restoreProductToCatalog = async (product) => {
+    const payload = mapProductToAdminForm(product)
+    const stockActual = Number(product.stock) || 0
+    const stockMinimo = Number(product.stock_minimo) || 1
+    const stockRestaurado = Math.max(stockActual, stockMinimo, 1)
+
+    setAdminMessage('')
+    setAdminRestoringId(product.id_producto)
+
+    try {
+      const response = await fetch(`${API_URL}/products/${product.id_producto}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          ...payload,
+          estado: 'ACTIVO',
+          stock: String(stockRestaurado),
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'No se pudo reactivar el producto')
+      }
+
+      const successMessage =
+        data.message || `${product.nombre} volvió al catálogo correctamente.`
+      setAdminMessage(successMessage)
+      onNotify(successMessage)
+      await loadProducts()
+    } catch (requestError) {
+      setAdminMessage(requestError.message)
+      onNotify(requestError.message)
+    } finally {
+      setAdminRestoringId(null)
     }
   }
 
@@ -2852,6 +2908,64 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
               </div>
             )}
           </section>
+
+          <section className="card admin-unavailable-panel">
+            <h3>Productos no disponibles</h3>
+            {unavailableProducts.length === 0 ? (
+              <p className="status-text">No hay productos fuera del catálogo.</p>
+            ) : (
+              <div className="admin-unavailable-list">
+                {unavailableProducts.map((product) => {
+                  const status = String(product.estado || '').toUpperCase()
+                  const stock = Number(product.stock) || 0
+                  const reasonParts = []
+                  if (status !== 'ACTIVO') reasonParts.push('Estado inactivo')
+                  if (stock <= 0) reasonParts.push('Sin stock')
+                  const reasonText = reasonParts.join(' · ')
+
+                  return (
+                    <article key={`unavailable-${product.id_producto}`} className="admin-unavailable-item">
+                      <div className="admin-unavailable-main">
+                        <img
+                          src={getProductImageUrl(product, 0)}
+                          alt={product.nombre}
+                          className="admin-unavailable-thumb"
+                          loading="lazy"
+                        />
+                        <div>
+                        <p className="admin-unavailable-name">
+                          <strong>{product.nombre}</strong> ({product.codigo})
+                        </p>
+                        <p className="admin-unavailable-meta">
+                          {reasonText || 'No disponible'} · Stock actual: {stock}
+                        </p>
+                        </div>
+                      </div>
+                      <div className="admin-unavailable-actions">
+                        <button
+                          className="btn btn-whatsapp"
+                          type="button"
+                          onClick={() => restoreProductToCatalog(product)}
+                          disabled={adminRestoringId === product.id_producto}
+                        >
+                          {adminRestoringId === product.id_producto
+                            ? 'Reactivando...'
+                            : 'Volver al catálogo'}
+                        </button>
+                        <button
+                          className="btn btn-ghost"
+                          type="button"
+                          onClick={() => startEditing(product)}
+                        >
+                          Editar
+                        </button>
+                      </div>
+                    </article>
+                  )
+                })}
+              </div>
+            )}
+          </section>
         </>
       ) : null}
 
@@ -3005,7 +3119,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                     {stockRestante === 0 ? 'Sin stock' : 'Agregar al carrito'}
                   </button>
                 ) : null}
-                {isAdmin && esCafe ? (
+                {isAdmin ? (
                   <>
                     <button
                       className="btn btn-ghost"
@@ -3916,7 +4030,7 @@ function hasPaymentProofReference(order) {
 
 function canClientDeleteOrder(order) {
   const status = String(order?.estado || '').toUpperCase()
-  return status === 'PENDIENTE' && !hasPaymentProofReference(order)
+  return status === 'PAGADA' || status === 'ANULADA'
 }
 
 function MyOrders({ token, onNotify }) {
@@ -3924,10 +4038,17 @@ function MyOrders({ token, onNotify }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [deletingOrderId, setDeletingOrderId] = useState(null)
-  const [clearingHistory, setClearingHistory] = useState(false)
   const previousStatusesRef = useRef(new Map())
-  const deletableOrdersCount = useMemo(
-    () => orders.filter((order) => canClientDeleteOrder(order)).length,
+  const pendingOrders = useMemo(
+    () => orders.filter((order) => String(order.estado || '').toUpperCase() === 'PENDIENTE'),
+    [orders],
+  )
+  const approvedOrders = useMemo(
+    () => orders.filter((order) => String(order.estado || '').toUpperCase() === 'PAGADA'),
+    [orders],
+  )
+  const rejectedOrders = useMemo(
+    () => orders.filter((order) => String(order.estado || '').toUpperCase() === 'ANULADA'),
     [orders],
   )
 
@@ -3998,34 +4119,6 @@ function MyOrders({ token, onNotify }) {
     }
   }
 
-  const clearHistory = async () => {
-    const confirmed = window.confirm(
-      'Solo se eliminarán pedidos pendientes sin comprobante enviado. ¿Deseas continuar?',
-    )
-    if (!confirmed) return
-
-    setClearingHistory(true)
-    try {
-      const response = await fetch(`${API_URL}/orders/my`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || 'No se pudo eliminar el historial')
-      }
-
-      onNotify(data.message || 'Historial eliminado correctamente.')
-      previousStatusesRef.current = new Map()
-      await loadOrders()
-    } catch (requestError) {
-      onNotify(requestError.message)
-    } finally {
-      setClearingHistory(false)
-    }
-  }
-
   useEffect(() => {
     const timerId = window.setTimeout(() => {
       loadOrders()
@@ -4049,16 +4142,6 @@ function MyOrders({ token, onNotify }) {
           <button className="btn btn-ghost" type="button" onClick={loadOrders}>
             Actualizar
           </button>
-          <button
-            className="btn btn-danger"
-            type="button"
-            onClick={clearHistory}
-            disabled={clearingHistory || deletableOrdersCount === 0}
-          >
-            {clearingHistory
-              ? 'Eliminando pedidos...'
-              : 'Eliminar pedidos sin comprobante'}
-          </button>
         </div>
       </div>
 
@@ -4070,88 +4153,252 @@ function MyOrders({ token, onNotify }) {
 
       {!loading && orders.length > 0 ? (
         <div className="orders-list">
-          {orders.map((order) => {
-            const statusBanner = getMyOrderStatusBanner(order)
-            const deliveryValue =
-              order.forma_entrega === 'ENTREGA_DOMICILIO'
-                ? `A domicilio - ${order.ciudad_entrega || order.provincia_entrega || 'Sin ciudad'}`
-                : 'Retiro en tienda física'
+          <section className="order-group">
+            <h3 className="order-group-title">Pendientes ({pendingOrders.length})</h3>
+            {pendingOrders.length === 0 ? (
+              <p className="status-text">No tienes pedidos pendientes.</p>
+            ) : (
+              pendingOrders.map((order) => {
+                const statusBanner = getMyOrderStatusBanner(order)
+                const deliveryValue =
+                  order.forma_entrega === 'ENTREGA_DOMICILIO'
+                    ? `A domicilio - ${order.ciudad_entrega || order.provincia_entrega || 'Sin ciudad'}`
+                    : 'Retiro en tienda física'
 
-            return (
-              <article key={order.id_venta} className="order-card order-card-premium">
-                <header className="order-premium-head">
-                  <div className="order-premium-title-wrap">
-                    <span className="order-premium-badge" aria-hidden="true">▣</span>
-                    <h3>Pedido #{order.id_venta}</h3>
-                  </div>
-                  <div className="order-premium-date">
-                    <span aria-hidden="true">◷</span>
-                    <span>{formatOrderDate(order.fecha)}</span>
-                  </div>
-                </header>
+                return (
+                  <article key={order.id_venta} className="order-card order-card-premium">
+                    <header className="order-premium-head">
+                      <div className="order-premium-title-wrap">
+                        <span className="order-premium-badge" aria-hidden="true">▣</span>
+                        <h3>Pedido #{order.id_venta}</h3>
+                      </div>
+                      <div className="order-premium-date">
+                        <span aria-hidden="true">◷</span>
+                        <span>{formatOrderDate(order.fecha)}</span>
+                      </div>
+                    </header>
 
-                <div className="order-premium-rows">
-                  <div className="order-premium-row">
-                    <p className="order-premium-label">
-                      <span className="order-row-icon" aria-hidden="true">$</span>
-                      <strong>Total:</strong>
+                    <div className="order-premium-rows">
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">$</span>
+                          <strong>Total:</strong>
+                        </p>
+                        <p className="order-premium-value order-premium-value-strong">
+                          {currency(Number(order.total) || 0)}
+                        </p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">🏦</span>
+                          <strong>Referencia depósito:</strong>
+                        </p>
+                        <p className="order-premium-value">{order.referencia_deposito || '-'}</p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">🚚</span>
+                          <strong>Entrega:</strong>
+                        </p>
+                        <p className="order-premium-value">{deliveryValue}</p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">📦</span>
+                          <strong>Costo del envío:</strong>
+                        </p>
+                        <p className="order-premium-value">
+                          {currency(Number(order.costo_envio) || 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`order-status-banner order-status-${statusBanner.tone}`}>
+                      <strong>{statusBanner.title}</strong>
+                      <span>{statusBanner.detail}</span>
+                    </div>
+
+                    <p className="status-text">
+                      Este pedido no se puede eliminar hasta ser aprobado o rechazado.
                     </p>
-                    <p className="order-premium-value order-premium-value-strong">
-                      {currency(Number(order.total) || 0)}
-                    </p>
-                  </div>
+                  </article>
+                )
+              })
+            )}
+          </section>
 
-                  <div className="order-premium-row">
-                    <p className="order-premium-label">
-                      <span className="order-row-icon" aria-hidden="true">🏦</span>
-                      <strong>Referencia depósito:</strong>
-                    </p>
-                    <p className="order-premium-value">{order.referencia_deposito || '-'}</p>
-                  </div>
+          <section className="order-group">
+            <h3 className="order-group-title">Aprobados ({approvedOrders.length})</h3>
+            {approvedOrders.length === 0 ? (
+              <p className="status-text">No tienes pedidos aprobados.</p>
+            ) : (
+              approvedOrders.map((order) => {
+                const statusBanner = getMyOrderStatusBanner(order)
+                const deliveryValue =
+                  order.forma_entrega === 'ENTREGA_DOMICILIO'
+                    ? `A domicilio - ${order.ciudad_entrega || order.provincia_entrega || 'Sin ciudad'}`
+                    : 'Retiro en tienda física'
 
-                  <div className="order-premium-row">
-                    <p className="order-premium-label">
-                      <span className="order-row-icon" aria-hidden="true">🚚</span>
-                      <strong>Entrega:</strong>
-                    </p>
-                    <p className="order-premium-value">{deliveryValue}</p>
-                  </div>
+                return (
+                  <article key={order.id_venta} className="order-card order-card-premium">
+                    <header className="order-premium-head">
+                      <div className="order-premium-title-wrap">
+                        <span className="order-premium-badge" aria-hidden="true">▣</span>
+                        <h3>Pedido #{order.id_venta}</h3>
+                      </div>
+                      <div className="order-premium-head-actions">
+                        <div className="order-premium-date">
+                          <span aria-hidden="true">◷</span>
+                          <span>{formatOrderDate(order.fecha)}</span>
+                        </div>
+                        <button
+                          className="order-delete-icon-btn"
+                          type="button"
+                          onClick={() => deleteOrder(order.id_venta)}
+                          disabled={deletingOrderId === order.id_venta}
+                          aria-label={`Eliminar pedido ${order.id_venta}`}
+                          title="Eliminar pedido"
+                        >
+                          {deletingOrderId === order.id_venta ? '…' : '🗑'}
+                        </button>
+                      </div>
+                    </header>
 
-                  <div className="order-premium-row">
-                    <p className="order-premium-label">
-                      <span className="order-row-icon" aria-hidden="true">📦</span>
-                      <strong>Costo del envío:</strong>
-                    </p>
-                    <p className="order-premium-value">
-                      {currency(Number(order.costo_envio) || 0)}
-                    </p>
-                  </div>
-                </div>
+                    <div className="order-premium-rows">
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">$</span>
+                          <strong>Total:</strong>
+                        </p>
+                        <p className="order-premium-value order-premium-value-strong">
+                          {currency(Number(order.total) || 0)}
+                        </p>
+                      </div>
 
-                <div className={`order-status-banner order-status-${statusBanner.tone}`}>
-                  <strong>{statusBanner.title}</strong>
-                  <span>{statusBanner.detail}</span>
-                </div>
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">🏦</span>
+                          <strong>Referencia depósito:</strong>
+                        </p>
+                        <p className="order-premium-value">{order.referencia_deposito || '-'}</p>
+                      </div>
 
-                {canClientDeleteOrder(order) ? (
-                  <button
-                    className="btn btn-danger"
-                    type="button"
-                    onClick={() => deleteOrder(order.id_venta)}
-                    disabled={deletingOrderId === order.id_venta}
-                  >
-                    {deletingOrderId === order.id_venta
-                      ? 'Eliminando...'
-                      : 'Eliminar pedido'}
-                  </button>
-                ) : order.estado === 'PENDIENTE' ? (
-                  <p className="status-text">
-                    Este pedido no se puede eliminar porque ya tiene comprobante enviado.
-                  </p>
-                ) : null}
-              </article>
-            )
-          })}
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">🚚</span>
+                          <strong>Entrega:</strong>
+                        </p>
+                        <p className="order-premium-value">{deliveryValue}</p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">📦</span>
+                          <strong>Costo del envío:</strong>
+                        </p>
+                        <p className="order-premium-value">
+                          {currency(Number(order.costo_envio) || 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`order-status-banner order-status-${statusBanner.tone}`}>
+                      <strong>{statusBanner.title}</strong>
+                      <span>{statusBanner.detail}</span>
+                    </div>
+                  </article>
+                )
+              })
+            )}
+          </section>
+
+          <section className="order-group">
+            <h3 className="order-group-title">Rechazados ({rejectedOrders.length})</h3>
+            {rejectedOrders.length === 0 ? (
+              <p className="status-text">No tienes pedidos rechazados.</p>
+            ) : (
+              rejectedOrders.map((order) => {
+                const statusBanner = getMyOrderStatusBanner(order)
+                const deliveryValue =
+                  order.forma_entrega === 'ENTREGA_DOMICILIO'
+                    ? `A domicilio - ${order.ciudad_entrega || order.provincia_entrega || 'Sin ciudad'}`
+                    : 'Retiro en tienda física'
+
+                return (
+                  <article key={order.id_venta} className="order-card order-card-premium">
+                    <header className="order-premium-head">
+                      <div className="order-premium-title-wrap">
+                        <span className="order-premium-badge" aria-hidden="true">▣</span>
+                        <h3>Pedido #{order.id_venta}</h3>
+                      </div>
+                      <div className="order-premium-head-actions">
+                        <div className="order-premium-date">
+                          <span aria-hidden="true">◷</span>
+                          <span>{formatOrderDate(order.fecha)}</span>
+                        </div>
+                        <button
+                          className="order-delete-icon-btn"
+                          type="button"
+                          onClick={() => deleteOrder(order.id_venta)}
+                          disabled={deletingOrderId === order.id_venta}
+                          aria-label={`Eliminar pedido ${order.id_venta}`}
+                          title="Eliminar pedido"
+                        >
+                          {deletingOrderId === order.id_venta ? '…' : '🗑'}
+                        </button>
+                      </div>
+                    </header>
+
+                    <div className="order-premium-rows">
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">$</span>
+                          <strong>Total:</strong>
+                        </p>
+                        <p className="order-premium-value order-premium-value-strong">
+                          {currency(Number(order.total) || 0)}
+                        </p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">🏦</span>
+                          <strong>Referencia depósito:</strong>
+                        </p>
+                        <p className="order-premium-value">{order.referencia_deposito || '-'}</p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">🚚</span>
+                          <strong>Entrega:</strong>
+                        </p>
+                        <p className="order-premium-value">{deliveryValue}</p>
+                      </div>
+
+                      <div className="order-premium-row">
+                        <p className="order-premium-label">
+                          <span className="order-row-icon" aria-hidden="true">📦</span>
+                          <strong>Costo del envío:</strong>
+                        </p>
+                        <p className="order-premium-value">
+                          {currency(Number(order.costo_envio) || 0)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className={`order-status-banner order-status-${statusBanner.tone}`}>
+                      <strong>{statusBanner.title}</strong>
+                      <span>{statusBanner.detail}</span>
+                    </div>
+                  </article>
+                )
+              })
+            )}
+          </section>
         </div>
       ) : null}
     </section>
