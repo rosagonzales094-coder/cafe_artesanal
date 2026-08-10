@@ -1708,6 +1708,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const [editingPreviewImageUrl, setEditingPreviewImageUrl] = useState('')
 
   const isAdmin = String(user?.rol || '').trim().toLowerCase() === 'administrador'
+  const CATALOG_FILTER_UNAVAILABLE = 'NO_DISPONIBLES'
   const featuredCode = useMemo(() => {
     const params = new URLSearchParams(location.search)
     return params.get('destacado') || ''
@@ -1738,12 +1739,23 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     [visibleCatalogBase, featuredCodeNormalized],
   )
 
+  const unavailableProducts = useMemo(() => {
+    if (!isAdmin) return []
+
+    return products.filter((product) => {
+      const status = String(product.estado || '').toUpperCase()
+      const stock = Number(product.stock) || 0
+      return status !== 'ACTIVO' || stock <= 0
+    })
+  }, [isAdmin, products])
+
   const filterCounts = useMemo(() => {
     const counts = {
       TODOS: visibleCatalogBase.length,
       ARTESANAL: 0,
       LIMITADA: 0,
       ACCESORIOS: 0,
+      [CATALOG_FILTER_UNAVAILABLE]: unavailableProducts.length,
     }
 
     for (const product of visibleCatalogBase) {
@@ -1751,14 +1763,15 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
 
     return counts
-  }, [visibleCatalogBase])
+  }, [visibleCatalogBase, unavailableProducts])
 
   const visibleProducts = useMemo(() => {
+    if (catalogFilter === CATALOG_FILTER_UNAVAILABLE) return []
     if (catalogFilter === 'TODOS') return visibleCatalogBase
     return visibleCatalogBase.filter(
       (product) => getCatalogGroup(product) === catalogFilter,
     )
-  }, [visibleCatalogBase, catalogFilter])
+  }, [visibleCatalogBase, catalogFilter, CATALOG_FILTER_UNAVAILABLE])
 
   const adminCategoryFilterValue = useMemo(() => {
     if (adminCategoryFilter === 'TODAS') return 'TODAS'
@@ -1783,15 +1796,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     )
   }, [isAdmin, visibleProducts, adminCategoryFilterValue])
 
-  const unavailableProducts = useMemo(() => {
-    if (!isAdmin) return []
-
-    return products.filter((product) => {
-      const status = String(product.estado || '').toUpperCase()
-      const stock = Number(product.stock) || 0
-      return status !== 'ACTIVO' || stock <= 0
-    })
-  }, [isAdmin, products])
+  const isUnavailableFilterActive =
+    isAdmin && catalogFilter === CATALOG_FILTER_UNAVAILABLE
 
   const cartQuantityByProductId = useMemo(() => {
     const map = new Map()
@@ -2567,6 +2573,15 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           </span>
           <span>Accesorios ({filterCounts.ACCESORIOS})</span>
         </button>
+        {isAdmin ? (
+          <button
+            className={`catalog-menu-btn ${catalogFilter === CATALOG_FILTER_UNAVAILABLE ? 'active' : ''}`}
+            type="button"
+            onClick={() => setCatalogFilter(CATALOG_FILTER_UNAVAILABLE)}
+          >
+            <span>No disponibles ({filterCounts[CATALOG_FILTER_UNAVAILABLE] || 0})</span>
+          </button>
+        ) : null}
       </div>
 
       {isAdmin ? (
@@ -2909,67 +2924,69 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
             )}
           </section>
 
-          <section className="card admin-unavailable-panel">
-            <h3>Productos no disponibles</h3>
-            {unavailableProducts.length === 0 ? (
-              <p className="status-text">No hay productos fuera del catálogo.</p>
-            ) : (
-              <div className="admin-unavailable-list">
-                {unavailableProducts.map((product) => {
-                  const status = String(product.estado || '').toUpperCase()
-                  const stock = Number(product.stock) || 0
-                  const reasonParts = []
-                  if (status !== 'ACTIVO') reasonParts.push('Estado inactivo')
-                  if (stock <= 0) reasonParts.push('Sin stock')
-                  const reasonText = reasonParts.join(' · ')
+          {isUnavailableFilterActive ? (
+            <section className="card admin-unavailable-panel">
+              <h3>Productos no disponibles</h3>
+              {unavailableProducts.length === 0 ? (
+                <p className="status-text">No hay productos fuera del catálogo.</p>
+              ) : (
+                <div className="admin-unavailable-list">
+                  {unavailableProducts.map((product) => {
+                    const status = String(product.estado || '').toUpperCase()
+                    const stock = Number(product.stock) || 0
+                    const reasonParts = []
+                    if (status !== 'ACTIVO') reasonParts.push('Estado inactivo')
+                    if (stock <= 0) reasonParts.push('Sin stock')
+                    const reasonText = reasonParts.join(' · ')
 
-                  return (
-                    <article key={`unavailable-${product.id_producto}`} className="admin-unavailable-item">
-                      <div className="admin-unavailable-main">
-                        <img
-                          src={getProductImageUrl(product, 0)}
-                          alt={product.nombre}
-                          className="admin-unavailable-thumb"
-                          loading="lazy"
-                        />
-                        <div>
-                        <p className="admin-unavailable-name">
-                          <strong>{product.nombre}</strong> ({product.codigo})
-                        </p>
-                        <p className="admin-unavailable-meta">
-                          {reasonText || 'No disponible'} · Stock actual: {stock}
-                        </p>
+                    return (
+                      <article key={`unavailable-${product.id_producto}`} className="admin-unavailable-item">
+                        <div className="admin-unavailable-main">
+                          <img
+                            src={getProductImageUrl(product, 0)}
+                            alt={product.nombre}
+                            className="admin-unavailable-thumb"
+                            loading="lazy"
+                          />
+                          <div>
+                            <p className="admin-unavailable-name">
+                              <strong>{product.nombre}</strong> ({product.codigo})
+                            </p>
+                            <p className="admin-unavailable-meta">
+                              {reasonText || 'No disponible'} · Stock actual: {stock}
+                            </p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="admin-unavailable-actions">
-                        <button
-                          className="btn btn-whatsapp"
-                          type="button"
-                          onClick={() => restoreProductToCatalog(product)}
-                          disabled={adminRestoringId === product.id_producto}
-                        >
-                          {adminRestoringId === product.id_producto
-                            ? 'Reactivando...'
-                            : 'Volver al catálogo'}
-                        </button>
-                        <button
-                          className="btn btn-ghost"
-                          type="button"
-                          onClick={() => startEditing(product)}
-                        >
-                          Editar
-                        </button>
-                      </div>
-                    </article>
-                  )
-                })}
-              </div>
-            )}
-          </section>
+                        <div className="admin-unavailable-actions">
+                          <button
+                            className="btn btn-whatsapp"
+                            type="button"
+                            onClick={() => restoreProductToCatalog(product)}
+                            disabled={adminRestoringId === product.id_producto}
+                          >
+                            {adminRestoringId === product.id_producto
+                              ? 'Reactivando...'
+                              : 'Volver al catálogo'}
+                          </button>
+                          <button
+                            className="btn btn-ghost"
+                            type="button"
+                            onClick={() => startEditing(product)}
+                          >
+                            Editar
+                          </button>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              )}
+            </section>
+          ) : null}
         </>
       ) : null}
 
-      {visibleProductsByAdminCategory.length === 0 ? (
+      {!isUnavailableFilterActive && visibleProductsByAdminCategory.length === 0 ? (
         <p className="status-text">No hay productos disponibles en esta sección.</p>
       ) : null}
 
@@ -2980,6 +2997,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
         </p>
       ) : null}
 
+      {!isUnavailableFilterActive ? (
       <div className="product-grid">
         {visibleProductsByAdminCategory.map((product, index) => {
           const stockActual = Number(product.stock) || 0
@@ -3146,6 +3164,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           )
         })}
       </div>
+      ) : null}
 
     </section>
   )
@@ -4628,10 +4647,7 @@ function SiteFooter({ onNotify }) {
         <section>
           <h4>Ayuda</h4>
           <ul>
-            <li><a href="/#sobre-nosotros">Preguntas y respuestas</a></li>
-            <li><a href="/#ubicacion">El equipo</a></li>
             <li><a href="https://wa.me/593988062935" target="_blank" rel="noreferrer">Contacto</a></li>
-            <li><a href="/catalogo">Términos y condiciones</a></li>
           </ul>
         </section>
 
