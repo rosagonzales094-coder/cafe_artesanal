@@ -582,8 +582,15 @@ router.put('/admin/:idVenta/approve', requireAuth, requireAdmin, async (req, res
 router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res) => {
   // Rechaza pedido pendiente y actualiza estados en ventas/pagos.
   const idVenta = Number(req.params.idVenta)
+  const motivoRechazo = String(req.body?.motivo_rechazo || '').trim()
   if (!idVenta) {
     return res.status(400).json({ message: ORDER_MESSAGES.invalidSaleId })
+  }
+
+  if (!motivoRechazo) {
+    return res.status(400).json({
+      message: 'Debes indicar el motivo de rechazo del pedido',
+    })
   }
 
   let connection
@@ -620,6 +627,7 @@ router.put('/admin/:idVenta/reject', requireAuth, requireAdmin, async (req, res)
     await upsertOrder({
       ...sale,
       estado: ORDER_STATUS.CANCELED,
+      motivo_rechazo: motivoRechazo,
     })
 
     await connection.commit()

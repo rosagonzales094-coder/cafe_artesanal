@@ -1629,6 +1629,40 @@ input:focus {
   gap: 0.5rem;
 }
 
+.admin-reject-reason-box {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.45rem;
+  border: 1px solid rgba(255, 172, 172, 0.24);
+  border-radius: 12px;
+  padding: 0.65rem;
+  background: rgba(120, 39, 39, 0.14);
+}
+
+.admin-reject-reason-box label {
+  color: #ffd8d5;
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.admin-reject-reason-box textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 74px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 183, 183, 0.32);
+  background: rgba(255, 236, 236, 0.06);
+  color: #ffe8e5;
+  padding: 0.6rem 0.65rem;
+  font-family: var(--font-body);
+}
+
+.admin-reject-reason-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 .orders-card {
   max-width: 920px;
   margin-inline: auto;
@@ -1767,6 +1801,162 @@ input:focus {
 .order-status {
   font-weight: 700;
   color: #ffdba2;
+}
+
+.order-card-premium {
+  border: 1px solid rgba(255, 210, 142, 0.34);
+  border-radius: 22px;
+  padding: 1rem;
+  background: radial-gradient(circle at 12% 10%, rgba(104, 58, 31, 0.28), rgba(46, 24, 14, 0.5));
+  box-shadow: inset 0 1px 0 rgba(255, 239, 210, 0.05), 0 16px 30px rgba(0, 0, 0, 0.22);
+}
+
+.order-premium-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.9rem;
+  border-bottom: 1px solid rgba(255, 214, 148, 0.22);
+  padding-bottom: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.order-premium-title-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.order-premium-title-wrap h3 {
+  margin: 0;
+  color: #fff2d6;
+  font-size: clamp(1.35rem, 2.8vw, 1.95rem);
+  font-family: var(--font-title);
+}
+
+.order-premium-badge {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(140deg, #ffe8b4, #efbb63);
+  color: #3f2715;
+  font-size: 1.08rem;
+  font-weight: 900;
+  box-shadow: 0 8px 18px rgba(221, 162, 83, 0.3);
+}
+
+.order-premium-date {
+  border: 1px solid rgba(255, 210, 142, 0.34);
+  border-radius: 14px;
+  padding: 0.55rem 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: #fbe0ac;
+  background: rgba(255, 230, 191, 0.08);
+}
+
+.order-premium-rows {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.order-premium-row {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.9fr) minmax(0, 1.3fr);
+  gap: 0.65rem;
+  align-items: center;
+  border-bottom: 1px solid rgba(255, 214, 148, 0.2);
+  padding: 0.35rem 0;
+}
+
+.order-premium-label {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #ffe8be;
+}
+
+.order-row-icon {
+  width: 1.95rem;
+  height: 1.95rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 212, 140, 0.16);
+  color: #ffd994;
+  border: 1px solid rgba(255, 212, 140, 0.22);
+}
+
+.order-premium-value {
+  margin: 0;
+  color: #fff3dc;
+  padding-left: 0.75rem;
+  border-left: 1px solid rgba(255, 214, 148, 0.25);
+}
+
+.order-premium-value-strong {
+  color: #f7c95d;
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.order-status-banner {
+  margin-top: 0.9rem;
+  border-radius: 16px;
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.order-status-banner strong {
+  font-size: 1.06rem;
+}
+
+.order-status-banner span {
+  font-size: 1.04rem;
+}
+
+.order-status-approved {
+  border: 1px solid rgba(143, 222, 112, 0.55);
+  background: rgba(90, 135, 45, 0.18);
+  color: #a5ea79;
+}
+
+.order-status-pending {
+  border: 1px solid rgba(255, 213, 125, 0.48);
+  background: rgba(144, 93, 36, 0.22);
+  color: #ffdca5;
+}
+
+.order-status-rejected {
+  border: 1px solid rgba(255, 148, 148, 0.45);
+  background: rgba(134, 43, 43, 0.2);
+  color: #ffbcb5;
+}
+
+@media (max-width: 760px) {
+  .order-premium-row {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .order-premium-value {
+    border-left: 0;
+    padding-left: 0;
+  }
+
+  .order-premium-head {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .whatsapp-float {

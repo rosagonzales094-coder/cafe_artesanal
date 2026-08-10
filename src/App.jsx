@@ -866,8 +866,8 @@ function getApprovedOrderStatusText(order) {
   }
 
   return isOrderWithinElOro(order)
-    ? 'Pedido aprobado. Llegará en máximo 2 días dentro de El Oro.'
-    : 'Pedido aprobado. Llegará en hasta 5 días.'
+    ? 'Tu pedido llegará en máximo 2 días laborables.'
+    : 'Tu pedido llegará en hasta 5 días laborables.'
 }
 
 function buildApprovedOrderNotification(order) {
@@ -3098,6 +3098,8 @@ function AdminPendingOrders({ token, onNotify }) {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [processingOrderId, setProcessingOrderId] = useState(null)
+  const [rejectingOrderId, setRejectingOrderId] = useState(null)
+  const [rejectReasonByOrderId, setRejectReasonByOrderId] = useState({})
 
   const groupedOrders = useMemo(() => {
     const groups = {
@@ -3167,11 +3169,24 @@ function AdminPendingOrders({ token, onNotify }) {
     )
     if (!confirmed) return
 
+    const rejectReason = String(rejectReasonByOrderId[idVenta] || '').trim()
+    if (action === 'reject' && !rejectReason) {
+      onNotify('Escribe el motivo por el que se rechaza el pedido.')
+      return
+    }
+
     setProcessingOrderId(idVenta)
     try {
       const response = await fetch(`${API_URL}/orders/admin/${idVenta}/${action}`, {
         method: 'PUT',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body:
+          action === 'reject'
+            ? JSON.stringify({ motivo_rechazo: rejectReason })
+            : undefined,
       })
       const data = await response.json()
       if (!response.ok) {
@@ -3179,6 +3194,10 @@ function AdminPendingOrders({ token, onNotify }) {
       }
 
       onNotify(data.message || `Pedido #${idVenta} procesado correctamente.`)
+      if (action === 'reject') {
+        setRejectingOrderId(null)
+        setRejectReasonByOrderId((prev) => ({ ...prev, [idVenta]: '' }))
+      }
       await loadAdminOrders()
     } catch (requestError) {
       onNotify(requestError.message)
@@ -3235,6 +3254,11 @@ function AdminPendingOrders({ token, onNotify }) {
                           <p>Costo del envío: {currency(Number(order.costo_envio) || 0)}</p>
                         ) : null}
                         <p>Total: {currency(Number(order.total) || 0)}</p>
+                        {order.estado === 'ANULADA' && order.motivo_rechazo ? (
+                          <p>
+                            Motivo de rechazo: <strong>{order.motivo_rechazo}</strong>
+                          </p>
+                        ) : null}
 
                         <div className="admin-order-items">
                           <p>Items:</p>
@@ -3263,10 +3287,51 @@ function AdminPendingOrders({ token, onNotify }) {
                               className="btn btn-danger"
                               type="button"
                               disabled={processingOrderId === order.id_venta}
-                              onClick={() => processOrder(order.id_venta, 'reject')}
+                              onClick={() =>
+                                setRejectingOrderId((prev) =>
+                                  prev === order.id_venta ? null : order.id_venta,
+                                )
+                              }
                             >
                               Rechazar pedido
                             </button>
+                          </div>
+                        ) : null}
+                        {section.key === 'PENDIENTE' && rejectingOrderId === order.id_venta ? (
+                          <div className="admin-reject-reason-box">
+                            <label htmlFor={`reject-reason-${order.id_venta}`}>
+                              Motivo del rechazo
+                            </label>
+                            <textarea
+                              id={`reject-reason-${order.id_venta}`}
+                              value={rejectReasonByOrderId[order.id_venta] || ''}
+                              onChange={(event) =>
+                                setRejectReasonByOrderId((prev) => ({
+                                  ...prev,
+                                  [order.id_venta]: event.target.value,
+                                }))
+                              }
+                              placeholder="Explica por qué se rechaza este pedido"
+                              rows={3}
+                            />
+                            <div className="admin-reject-reason-actions">
+                              <button
+                                className="btn btn-danger"
+                                type="button"
+                                disabled={processingOrderId === order.id_venta}
+                                onClick={() => processOrder(order.id_venta, 'reject')}
+                              >
+                                Confirmar rechazo
+                              </button>
+                              <button
+                                className="btn btn-ghost"
+                                type="button"
+                                disabled={processingOrderId === order.id_venta}
+                                onClick={() => setRejectingOrderId(null)}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
                           </div>
                         ) : null}
                       </article>
@@ -3737,7 +3802,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           </button>
         ) : (
           <button
-            className="btn btn-solid"
+            className="btn btn-whatsapp"
             type="button"
             onClick={() => navigate('/catalogo')}
           >
@@ -3820,6 +3885,31 @@ function statusLabelByOrderState(order) {
   return 'Pendiente de validación del depósito'
 }
 
+function getMyOrderStatusBanner(order) {
+  if (order.estado === 'PAGADA') {
+    return {
+      tone: 'approved',
+      title: 'Pedido aprobado.',
+      detail: getApprovedOrderStatusText(order),
+    }
+  }
+
+  if (order.estado === 'ANULADA') {
+    const reason = String(order.motivo_rechazo || '').trim()
+    return {
+      tone: 'rejected',
+      title: 'Pedido rechazado.',
+      detail: reason || 'El administrador rechazó este pedido.',
+    }
+  }
+
+  return {
+    tone: 'pending',
+    title: 'Pedido pendiente.',
+    detail: 'Estamos validando tu comprobante de pago.',
+  }
+}
+
 function hasPaymentProofReference(order) {
   return Boolean(String(order?.referencia_deposito || '').trim())
 }
@@ -3861,7 +3951,12 @@ function MyOrders({ token, onNotify }) {
           }
 
           if (order.estado === 'ANULADA') {
-            onNotify(`Pedido #${order.id_venta} fue rechazado por admin.`)
+            const reason = String(order.motivo_rechazo || '').trim()
+            onNotify(
+              reason
+                ? `Pedido #${order.id_venta} fue rechazado por admin. Motivo: ${reason}`
+                : `Pedido #${order.id_venta} fue rechazado por admin.`,
+            )
           }
         }
       }
@@ -3975,37 +4070,88 @@ function MyOrders({ token, onNotify }) {
 
       {!loading && orders.length > 0 ? (
         <div className="orders-list">
-          {orders.map((order) => (
-            <article key={order.id_venta} className="order-card">
-              <div className="order-title">
-                <strong>Pedido #{order.id_venta}</strong>
-                <span>{formatOrderDate(order.fecha)}</span>
-              </div>
-              <p>Total: {currency(Number(order.total) || 0)}</p>
-              <p>Referencia depósito: {order.referencia_deposito || '-'}</p>
-              <p>{formatDeliveryText(order.forma_entrega, order.direccion_entrega)}</p>
-              {order.forma_entrega === 'ENTREGA_DOMICILIO' ? (
-                <p>Costo del envío: {currency(Number(order.costo_envio) || 0)}</p>
-              ) : null}
-              <p className="order-status">{statusLabelByOrderState(order)}</p>
-              {canClientDeleteOrder(order) ? (
-                <button
-                  className="btn btn-danger"
-                  type="button"
-                  onClick={() => deleteOrder(order.id_venta)}
-                  disabled={deletingOrderId === order.id_venta}
-                >
-                  {deletingOrderId === order.id_venta
-                    ? 'Eliminando...'
-                    : 'Eliminar pedido'}
-                </button>
-              ) : order.estado === 'PENDIENTE' ? (
-                <p className="status-text">
-                  Este pedido no se puede eliminar porque ya tiene comprobante enviado.
-                </p>
-              ) : null}
-            </article>
-          ))}
+          {orders.map((order) => {
+            const statusBanner = getMyOrderStatusBanner(order)
+            const deliveryValue =
+              order.forma_entrega === 'ENTREGA_DOMICILIO'
+                ? `A domicilio - ${order.ciudad_entrega || order.provincia_entrega || 'Sin ciudad'}`
+                : 'Retiro en tienda física'
+
+            return (
+              <article key={order.id_venta} className="order-card order-card-premium">
+                <header className="order-premium-head">
+                  <div className="order-premium-title-wrap">
+                    <span className="order-premium-badge" aria-hidden="true">▣</span>
+                    <h3>Pedido #{order.id_venta}</h3>
+                  </div>
+                  <div className="order-premium-date">
+                    <span aria-hidden="true">◷</span>
+                    <span>{formatOrderDate(order.fecha)}</span>
+                  </div>
+                </header>
+
+                <div className="order-premium-rows">
+                  <div className="order-premium-row">
+                    <p className="order-premium-label">
+                      <span className="order-row-icon" aria-hidden="true">$</span>
+                      <strong>Total:</strong>
+                    </p>
+                    <p className="order-premium-value order-premium-value-strong">
+                      {currency(Number(order.total) || 0)}
+                    </p>
+                  </div>
+
+                  <div className="order-premium-row">
+                    <p className="order-premium-label">
+                      <span className="order-row-icon" aria-hidden="true">🏦</span>
+                      <strong>Referencia depósito:</strong>
+                    </p>
+                    <p className="order-premium-value">{order.referencia_deposito || '-'}</p>
+                  </div>
+
+                  <div className="order-premium-row">
+                    <p className="order-premium-label">
+                      <span className="order-row-icon" aria-hidden="true">🚚</span>
+                      <strong>Entrega:</strong>
+                    </p>
+                    <p className="order-premium-value">{deliveryValue}</p>
+                  </div>
+
+                  <div className="order-premium-row">
+                    <p className="order-premium-label">
+                      <span className="order-row-icon" aria-hidden="true">📦</span>
+                      <strong>Costo del envío:</strong>
+                    </p>
+                    <p className="order-premium-value">
+                      {currency(Number(order.costo_envio) || 0)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={`order-status-banner order-status-${statusBanner.tone}`}>
+                  <strong>{statusBanner.title}</strong>
+                  <span>{statusBanner.detail}</span>
+                </div>
+
+                {canClientDeleteOrder(order) ? (
+                  <button
+                    className="btn btn-danger"
+                    type="button"
+                    onClick={() => deleteOrder(order.id_venta)}
+                    disabled={deletingOrderId === order.id_venta}
+                  >
+                    {deletingOrderId === order.id_venta
+                      ? 'Eliminando...'
+                      : 'Eliminar pedido'}
+                  </button>
+                ) : order.estado === 'PENDIENTE' ? (
+                  <p className="status-text">
+                    Este pedido no se puede eliminar porque ya tiene comprobante enviado.
+                  </p>
+                ) : null}
+              </article>
+            )
+          })}
         </div>
       ) : null}
     </section>
