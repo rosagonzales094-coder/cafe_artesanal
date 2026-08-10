@@ -798,6 +798,28 @@ function formatDeliveryText(formaEntrega, direccionEntrega) {
   return 'Retiro en tienda física'
 }
 
+function isOrderWithinElOro(order) {
+  const provincia = normalizeLocationValue(order?.provincia_entrega)
+  const direccion = normalizeLocationValue(order?.direccion_entrega)
+  const locationText = `${provincia} ${direccion}`.trim()
+
+  return locationText.includes('el oro') || locationText.includes('zaruma')
+}
+
+function getApprovedOrderStatusText(order) {
+  if (order?.forma_entrega !== 'ENTREGA_DOMICILIO') {
+    return 'Tu pedido está listo para retirar.'
+  }
+
+  return isOrderWithinElOro(order)
+    ? 'Pedido aprobado. Llegará en máximo 2 días dentro de El Oro.'
+    : 'Pedido aprobado. Llegará en hasta 5 días.'
+}
+
+function buildApprovedOrderNotification(order) {
+  return `Pedido #${order.id_venta} aprobado por COOFE DRINK. ${getApprovedOrderStatusText(order)}`
+}
+
 function normalizeLocationValue(value) {
   // Normaliza ubicacion para reglas de costo de envio.
   return String(value || '')
@@ -3260,6 +3282,21 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
     () => Number((subtotalProductos + iva + deliveryQuote.fee).toFixed(2)),
     [subtotalProductos, iva, deliveryQuote.fee],
   )
+  const hasDeliveryDestination = useMemo(() => {
+    const provinciaEntregaLimpia = String(provinciaEntrega || '').trim()
+    const ciudadEntregaLimpia = String(ciudadEntrega || '').trim()
+    const sectorEntregaLimpio = String(sectorEntrega || '').trim()
+    const direccionEntregaLimpia = String(direccionEntrega || '').trim()
+
+    return Boolean(
+      provinciaEntregaLimpia &&
+      ciudadEntregaLimpia &&
+      sectorEntregaLimpio &&
+      direccionEntregaLimpia,
+    )
+  }, [provinciaEntrega, ciudadEntrega, sectorEntrega, direccionEntrega])
+  const canStartProofFlow =
+    formaEntrega !== 'ENTREGA_DOMICILIO' || hasDeliveryDestination
 
   const onSubmit = async (event) => {
     event.preventDefault()
@@ -3296,6 +3333,12 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
     const ciudadEntregaLimpia = String(ciudadEntrega || '').trim()
     const sectorEntregaLimpio = String(sectorEntrega || '').trim()
     const direccionEntregaLimpia = String(direccionEntrega || '').trim()
+
+    if (!canStartProofFlow) {
+      setError('Completa la ubicación para calcular el envío antes de enviar comprobante.')
+      onNotify('Primero calcula el envío con provincia, ciudad, sector y dirección.')
+      return
+    }
 
     if (
       formaEntrega === 'ENTREGA_DOMICILIO' &&
@@ -3446,32 +3489,41 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
 
         <article className="checkout-panel">
           <h3>Verificación con COOFE DRINK</h3>
-          <p>
-            Registra tu pedido y luego envía el comprobante por WhatsApp para
-            validarlo.
-          </p>
-          <p>
-            COOFE DRINK aprobará la compra y después se descontará el stock.
-          </p>
-          <a
-            className="btn btn-whatsapp"
-            href={whatsappUrl}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Enviar comprobante por WhatsApp
-          </a>
-          <p className="status-text">
-            Paso obligatorio: envía el comprobante antes de registrar el pedido.
-          </p>
-          <label className="proof-confirm-check">
-            <input
-              type="checkbox"
-              checked={proofSent}
-              onChange={(event) => setProofSent(event.target.checked)}
-            />
-            Ya envié mi comprobante por WhatsApp
-          </label>
+          {canStartProofFlow ? (
+            <>
+              <p>
+                Registra tu pedido y luego envía el comprobante por WhatsApp para
+                validarlo.
+              </p>
+              <p>
+                COOFE DRINK aprobará la compra y después se descontará el stock.
+              </p>
+              <a
+                className="btn btn-whatsapp"
+                href={whatsappUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Enviar comprobante por WhatsApp
+              </a>
+              <p className="status-text">
+                Paso obligatorio: envía el comprobante antes de registrar el pedido.
+              </p>
+              <label className="proof-confirm-check">
+                <input
+                  type="checkbox"
+                  checked={proofSent}
+                  onChange={(event) => setProofSent(event.target.checked)}
+                />
+                Ya envié mi comprobante por WhatsApp
+              </label>
+            </>
+          ) : (
+            <p className="status-text">
+              Primero completa provincia, ciudad, sector y dirección para calcular
+              el envío. Después se habilitará el envío de comprobante.
+            </p>
+          )}
         </article>
       </div>
 
@@ -3484,15 +3536,17 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           <option value="DEPOSITO_BANCARIO">Depósito bancario</option>
           <option value="TRANSFERENCIA_BANCARIA">Transferencia bancaria</option>
         </select>
-        <input
-          ref={proofImageInputRef}
-          type="file"
-          accept="image/*"
-          onChange={(event) =>
-            setProofImageName(event.target.files?.[0]?.name || '')
-          }
-          required
-        />
+        {canStartProofFlow ? (
+          <input
+            ref={proofImageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(event) =>
+              setProofImageName(event.target.files?.[0]?.name || '')
+            }
+            required
+          />
+        ) : null}
         <select
           value={formaEntrega}
           onChange={(event) => setFormaEntrega(event.target.value)}
@@ -3548,11 +3602,13 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
           <button
             className="btn btn-solid"
             type="submit"
-            disabled={loading || !proofSent}
+            disabled={loading || !canStartProofFlow || !proofSent}
           >
             {loading
               ? 'Procesando...'
-              : !proofSent
+              : !canStartProofFlow
+                ? 'Calcula envío para continuar'
+                : !proofSent
                 ? 'Envía comprobante para continuar'
                 : 'Registrar pedido'}
           </button>
@@ -3578,7 +3634,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
 
 function statusLabelByOrderState(order) {
   if (order.estado === 'PAGADA') {
-    return 'Tu pedido está listo para retirar.'
+    return getApprovedOrderStatusText(order)
   }
 
   if (order.estado === 'ANULADA') {
@@ -3625,7 +3681,7 @@ function MyOrders({ token, onNotify }) {
         const previousState = previousStatusesRef.current.get(order.id_venta)
         if (previousState && previousState !== order.estado) {
           if (order.estado === 'PAGADA') {
-            onNotify(`Pedido #${order.id_venta} aprobado por COOFE DRINK. Tu pedido está listo para retirar.`)
+            onNotify(buildApprovedOrderNotification(order))
           }
 
           if (order.estado === 'ANULADA') {
