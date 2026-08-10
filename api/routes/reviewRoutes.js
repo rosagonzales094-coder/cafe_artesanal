@@ -1,6 +1,8 @@
 import express from 'express'
 import pool from '../db.js'
 import { requireAdmin, requireAuth } from '../middleware/auth.js'
+import { ORDER_STATUS } from '../constants/orderConstants.js'
+import { getOrdersByClient } from '../orderStore.js'
 import {
   addReview,
   addReviewConversationReply,
@@ -188,6 +190,26 @@ router.post('/', requireAuth, async (req, res) => {
       productReviewData = {
         id_producto: Number(productRows[0].id_producto),
         product_name: productRows[0].nombre,
+      }
+
+      // Solo puede reseñar quien compró y pagó ese producto.
+      const clientOrders = await getOrdersByClient(req.user.id_cliente)
+      const hasPaidPurchase = clientOrders.some((order) => {
+        const isPaid =
+          String(order?.estado || '').trim().toUpperCase() === ORDER_STATUS.PAID
+        if (!isPaid) return false
+
+        const items = Array.isArray(order?.items) ? order.items : []
+        return items.some(
+          (item) => Number(item?.id_producto) === productReviewData.id_producto,
+        )
+      })
+
+      if (!hasPaidPurchase) {
+        return res.status(403).json({
+          message:
+            'Solo puedes reseñar productos que hayas comprado y pagado.',
+        })
       }
     }
 

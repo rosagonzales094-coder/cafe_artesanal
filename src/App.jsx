@@ -1744,10 +1744,14 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     return map
   }, [products, productReviewsById])
 
-  const purchasedProductIds = useMemo(() => {
+  const paidPurchasedProductIds = useMemo(() => {
     const ids = new Set()
 
     for (const order of clientOrders) {
+      const isPaidOrder =
+        String(order?.estado || '').trim().toUpperCase() === ORDER_STATUS.PAID
+      if (!isPaidOrder) continue
+
       const items = Array.isArray(order?.items) ? order.items : []
       for (const item of items) {
         const productId = Number(item?.id_producto)
@@ -2788,8 +2792,8 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           const esLimitada = getCatalogGroup(product) === 'LIMITADA'
           const esCafe = ['ARTESANAL', 'LIMITADA'].includes(getCatalogGroup(product))
           const canShowReviews = isAdmin
-            ? esCafe
-            : esCafe && purchasedProductIds.has(Number(product.id_producto))
+            ? true
+            : paidPurchasedProductIds.has(Number(product.id_producto))
           const productImageUrl = getProductImageUrl(product, index)
           const productReviewSummary = reviewSummaryByProductId.get(Number(product.id_producto)) || {
             count: 0,
