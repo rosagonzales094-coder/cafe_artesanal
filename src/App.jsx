@@ -3286,6 +3286,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
   // Flujo de pago: validaciones, envio de comprobante y registro de pedido.
   const navigate = useNavigate()
   const proofImageInputRef = useRef(null)
+  const deliveryDataSnapshotRef = useRef('')
   const [paymentMethod, setPaymentMethod] = useState('DEPOSITO_BANCARIO')
   const [proofImageName, setProofImageName] = useState('')
   const [formaEntrega, setFormaEntrega] = useState('RETIRO_TIENDA')
@@ -3301,6 +3302,13 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
   const [lastPaymentMethod, setLastPaymentMethod] = useState('DEPOSITO_BANCARIO')
   const [lastDeliveryMethod, setLastDeliveryMethod] = useState('RETIRO_TIENDA')
   const [lastDeliveryAddress, setLastDeliveryAddress] = useState('')
+  const [lastProofImageName, setLastProofImageName] = useState('')
+  const [lastDeliveryLocation, setLastDeliveryLocation] = useState({
+    provincia: '',
+    ciudad: '',
+    sector: '',
+    direccion: '',
+  })
 
   const subtotalProductos = useMemo(
     () =>
@@ -3355,6 +3363,36 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
   }, [provinciaEntrega, ciudadEntrega, sectorEntrega, direccionEntrega])
   const canStartProofFlow =
     formaEntrega !== 'ENTREGA_DOMICILIO' || hasDeliveryDestination
+
+  useEffect(() => {
+    if (formaEntrega !== 'ENTREGA_DOMICILIO') {
+      deliveryDataSnapshotRef.current = ''
+      return
+    }
+
+    const snapshot = [
+      provinciaEntrega,
+      ciudadEntrega,
+      sectorEntrega,
+      direccionEntrega,
+    ]
+      .map((value) => String(value || '').trim())
+      .join('|')
+
+    if (!deliveryDataSnapshotRef.current) {
+      deliveryDataSnapshotRef.current = snapshot
+      return
+    }
+
+    if (deliveryDataSnapshotRef.current !== snapshot) {
+      setProofSent(false)
+      setProofImageName('')
+      if (proofImageInputRef.current) {
+        proofImageInputRef.current.value = ''
+      }
+      deliveryDataSnapshotRef.current = snapshot
+    }
+  }, [formaEntrega, provinciaEntrega, ciudadEntrega, sectorEntrega, direccionEntrega])
 
   const onSubmit = async (event) => {
     event.preventDefault()
@@ -3461,6 +3499,13 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
       setLastPaymentMethod(paymentMethod)
       setLastDeliveryMethod(formaEntrega)
       setLastDeliveryAddress(direccionEntregaCompleta)
+      setLastProofImageName(proofImageName)
+      setLastDeliveryLocation({
+        provincia: provinciaEntregaLimpia,
+        ciudad: ciudadEntregaLimpia,
+        sector: sectorEntregaLimpio,
+        direccion: direccionEntregaLimpia,
+      })
       onOrderComplete(data.order)
       setDireccionEntrega('')
       setProvinciaEntrega('')
@@ -3565,7 +3610,7 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
                 Enviar comprobante por WhatsApp
               </a>
               <p className="status-text">
-                Paso obligatorio: envía el comprobante antes de registrar el pedido.
+                Paso final: envía el comprobante antes de registrar el pedido.
               </p>
               <label className="proof-confirm-check">
                 <input
@@ -3702,9 +3747,62 @@ function Checkout({ token, user, cartItems, onOrderComplete, onNotify }) {
       </form>
 
       {lastOrder ? (
-        <p className="status-text checkout-next-step">
-          Pedido registrado: <strong>#{lastOrder.id_venta}</strong>.
-        </p>
+        <article className="checkout-panel checkout-next-step">
+          <h3>Compra registrada con éxito</h3>
+          <p>
+            Tu pedido <strong>#{lastOrder.id_venta}</strong> fue registrado
+            correctamente. Revisa este resumen de pago:
+          </p>
+          <p>
+            Método de pago: <strong>{getPaymentMethodLabel(lastPaymentMethod)}</strong>
+          </p>
+          <p>
+            Comprobante adjunto: <strong>{lastProofImageName || 'No registrado'}</strong>
+          </p>
+          <p>
+            Forma de entrega:{' '}
+            <strong>
+              {lastDeliveryMethod === 'ENTREGA_DOMICILIO'
+                ? 'Entrega a domicilio'
+                : 'Retiro en tienda física'}
+            </strong>
+          </p>
+          {lastDeliveryMethod === 'ENTREGA_DOMICILIO' ? (
+            <>
+              <p>
+                Provincia: <strong>{lastDeliveryLocation.provincia || '-'}</strong>
+              </p>
+              <p>
+                Ciudad: <strong>{lastDeliveryLocation.ciudad || '-'}</strong>
+              </p>
+              <p>
+                Sector: <strong>{lastDeliveryLocation.sector || '-'}</strong>
+              </p>
+              <p>
+                Dirección: <strong>{lastDeliveryLocation.direccion || '-'}</strong>
+              </p>
+              <p>
+                Distancia estimada: <strong>{lastOrder.distancia_envio || '-'}</strong>
+              </p>
+            </>
+          ) : null}
+          <p>
+            Subtotal: <strong>{currency(Number(lastOrder.subtotal) || 0)}</strong>
+          </p>
+          <p>
+            IVA (15%): <strong>{currency(Number(lastOrder.iva) || 0)}</strong>
+          </p>
+          <p>
+            Costo del envío:{' '}
+            <strong>{currency(Number(lastOrder.costo_envio) || 0)}</strong>
+          </p>
+          <p>
+            Total pagado: <strong>{currency(Number(lastOrder.total) || 0)}</strong>
+          </p>
+          <p className="status-text">
+            Conserva este resumen como respaldo de tu compra.
+          </p>
+        </article>
       ) : null}
     </section>
   )
