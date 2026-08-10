@@ -1196,12 +1196,21 @@ function Register({ onRegister, onNotify }) {
   const navigate = useNavigate()
 
   const onChange = (event) => {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
+    const { name, value } = event.target
+    const nextValue =
+      name === 'telefono' ? value.replace(/\D/g, '').slice(0, 10) : value
+
+    setForm((prev) => ({ ...prev, [name]: nextValue }))
   }
 
   const onSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    if (!/^\d{10}$/.test(form.telefono)) {
+      setError('El número de teléfono debe tener exactamente 10 dígitos')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -1247,6 +1256,11 @@ function Register({ onRegister, onNotify }) {
           placeholder="Teléfono"
           value={form.telefono}
           onChange={onChange}
+          inputMode="numeric"
+          pattern="\\d{10}"
+          maxLength={10}
+          title="Ingresa un número de teléfono de 10 dígitos"
+          required
         />
         <input
           type="email"
@@ -1587,6 +1601,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
   const location = useLocation()
   const [products, setProducts] = useState([])
   const [reviews, setReviews] = useState([])
+  const [clientOrders, setClientOrders] = useState([])
   const [reviewDrafts, setReviewDrafts] = useState({})
   const [reviewSavingKey, setReviewSavingKey] = useState('')
   const [reviewReplyDrafts, setReviewReplyDrafts] = useState({})
@@ -1729,6 +1744,22 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     return map
   }, [products, productReviewsById])
 
+  const purchasedProductIds = useMemo(() => {
+    const ids = new Set()
+
+    for (const order of clientOrders) {
+      const items = Array.isArray(order?.items) ? order.items : []
+      for (const item of items) {
+        const productId = Number(item?.id_producto)
+        if (productId > 0) {
+          ids.add(productId)
+        }
+      }
+    }
+
+    return ids
+  }, [clientOrders])
+
   const loadProducts = useCallback(async () => {
     // Carga catalogo actual desde API.
     const response = await fetch(`${API_URL}/products`, {
@@ -1779,6 +1810,24 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     setReviews(productReviews)
   }, [token])
 
+  const loadClientOrders = useCallback(async () => {
+    if (isAdmin) {
+      setClientOrders([])
+      return
+    }
+
+    const response = await fetch(`${API_URL}/orders/my`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const data = await response.json()
+
+    if (!response.ok) {
+      throw new Error(data.message || 'No se pudieron cargar tus pedidos')
+    }
+
+    setClientOrders(Array.isArray(data.orders) ? data.orders : [])
+  }, [isAdmin, token])
+
   useEffect(() => {
     // Inicializa datos del catalogo y panel admin en paralelo secuencial.
     async function loadData() {
@@ -1787,6 +1836,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
         await loadProducts()
         await loadReviews()
+        await loadClientOrders()
 
         if (isAdmin) {
           await loadAdminMeta()
@@ -1799,7 +1849,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
     }
 
     loadData()
-  }, [token, isAdmin, loadProducts, loadAdminMeta, loadReviews])
+  }, [token, isAdmin, loadProducts, loadAdminMeta, loadReviews, loadClientOrders])
 
   const onAdminChange = (event) => {
     const { name, value } = event.target
@@ -2737,6 +2787,9 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
           const stockRestante = Math.max(stockActual - cantidadEnCarrito, 0)
           const esLimitada = getCatalogGroup(product) === 'LIMITADA'
           const esCafe = ['ARTESANAL', 'LIMITADA'].includes(getCatalogGroup(product))
+          const canShowReviews = isAdmin
+            ? esCafe
+            : esCafe && purchasedProductIds.has(Number(product.id_producto))
           const productImageUrl = getProductImageUrl(product, index)
           const productReviewSummary = reviewSummaryByProductId.get(Number(product.id_producto)) || {
             count: 0,
@@ -2783,71 +2836,75 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
             <p className="category-tag">{product.categoria}</p>
             <h3>{product.nombre}</h3>
             <p>{getProductDescription(product)}</p>
-            <div className="review-summary-block">
-              <div className="review-summary-line">
-                <ReviewStars rating={productReviewSummary.average} />
-                <span>
-                  {productReviewSummary.count > 0
-                    ? `${productReviewSummary.average}/5 · ${productReviewSummary.count} reseñas`
-                    : 'Sin reseñas aún'}
-                </span>
+            {canShowReviews ? (
+              <div className="review-summary-block">
+                <div className="review-summary-line">
+                  <ReviewStars rating={productReviewSummary.average} />
+                  <span>
+                    {productReviewSummary.count > 0
+                      ? `${productReviewSummary.average}/5 · ${productReviewSummary.count} reseñas`
+                      : 'Sin reseñas aún'}
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : null}
             <p className={`stock-text ${stockActual === 0 ? 'stock-empty' : ''}`}>
               {esLimitada ? 'Edición limitada' : 'Disponibilidad'}: stock{' '}
               <strong>{stockActual}</strong>
             </p>
-            <div className="product-review-panel">
-              <RatingPicker
-                label="Tu calificación"
-                value={currentDraft.rating}
-                onChange={(rating) =>
-                  updateProductReviewDraft(product.id_producto, 'rating', rating)
-                }
-              />
-              <button
-                className="btn btn-ghost review-submit-btn"
-                type="button"
-                onClick={() =>
-                  submitReview({
-                    scope: REVIEW_SCOPE_PRODUCT,
-                    idProducto: product.id_producto,
-                    draft: currentDraft,
-                    key: `product-${product.id_producto}`,
-                  })
-                }
-                disabled={reviewSavingKey === `product-${product.id_producto}`}
-              >
-                {reviewSavingKey === `product-${product.id_producto}`
-                  ? 'Guardando...'
-                  : 'Enviar reseña'}
-              </button>
-              <ReviewThreadList
-                reviews={productReviews}
-                emptyText="Aún no hay reseñas para este producto."
-                isAuthenticated={Boolean(token)}
-                isAdmin={isAdmin}
-                currentUserId={user?.id_usuario}
-                currentClientId={user?.id_cliente}
-                currentUsername={user?.usuario}
-                replyDrafts={reviewReplyDrafts}
-                onReplyDraftChange={(reviewId, value) =>
-                  setReviewReplyDrafts((prev) => ({ ...prev, [reviewId]: value }))
-                }
-                onSubmitReply={submitReviewReply}
-                replyingKey={reviewReplySavingKey}
-                conversationDrafts={conversationDrafts}
-                onConversationDraftChange={(reviewId, value) =>
-                  setConversationDrafts((prev) => ({ ...prev, [reviewId]: value }))
-                }
-                onSubmitConversationReply={submitConversationReply}
-                conversationSavingKey={conversationSavingKey}
-                onDeleteConversationReply={deleteConversationReply}
-                conversationDeletingKey={conversationDeletingKey}
-                onDeleteReview={deleteReview}
-                deletingKey={reviewDeleteSavingKey}
-              />
-            </div>
+            {canShowReviews ? (
+              <div className="product-review-panel">
+                <RatingPicker
+                  label="Tu calificación"
+                  value={currentDraft.rating}
+                  onChange={(rating) =>
+                    updateProductReviewDraft(product.id_producto, 'rating', rating)
+                  }
+                />
+                <button
+                  className="btn btn-ghost review-submit-btn"
+                  type="button"
+                  onClick={() =>
+                    submitReview({
+                      scope: REVIEW_SCOPE_PRODUCT,
+                      idProducto: product.id_producto,
+                      draft: currentDraft,
+                      key: `product-${product.id_producto}`,
+                    })
+                  }
+                  disabled={reviewSavingKey === `product-${product.id_producto}`}
+                >
+                  {reviewSavingKey === `product-${product.id_producto}`
+                    ? 'Guardando...'
+                    : 'Enviar reseña'}
+                </button>
+                <ReviewThreadList
+                  reviews={productReviews}
+                  emptyText="Aún no hay reseñas para este producto."
+                  isAuthenticated={Boolean(token)}
+                  isAdmin={isAdmin}
+                  currentUserId={user?.id_usuario}
+                  currentClientId={user?.id_cliente}
+                  currentUsername={user?.usuario}
+                  replyDrafts={reviewReplyDrafts}
+                  onReplyDraftChange={(reviewId, value) =>
+                    setReviewReplyDrafts((prev) => ({ ...prev, [reviewId]: value }))
+                  }
+                  onSubmitReply={submitReviewReply}
+                  replyingKey={reviewReplySavingKey}
+                  conversationDrafts={conversationDrafts}
+                  onConversationDraftChange={(reviewId, value) =>
+                    setConversationDrafts((prev) => ({ ...prev, [reviewId]: value }))
+                  }
+                  onSubmitConversationReply={submitConversationReply}
+                  conversationSavingKey={conversationSavingKey}
+                  onDeleteConversationReply={deleteConversationReply}
+                  conversationDeletingKey={conversationDeletingKey}
+                  onDeleteReview={deleteReview}
+                  deletingKey={reviewDeleteSavingKey}
+                />
+              </div>
+            ) : null}
             <div className="product-foot">
               <strong>{currency(Number(product.precio))}</strong>
               <div className="product-actions">
@@ -2858,7 +2915,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
                     onClick={() => handleAddToCart(product)}
                     disabled={stockRestante === 0}
                   >
-                    {stockRestante === 0 ? 'Sin stock' : 'Agregar'}
+                    {stockRestante === 0 ? 'Sin stock' : 'Agregar al carrito'}
                   </button>
                 ) : null}
                 {isAdmin && esCafe ? (

@@ -19,12 +19,21 @@ export default function RegisterPage({ apiUrl, onRegister, onNotify }) {
   const navigate = useNavigate()
 
   const onChange = (event) => {
-    setForm((prev) => ({ ...prev, [event.target.name]: event.target.value }))
+    const { name, value } = event.target
+    const nextValue =
+      name === 'telefono' ? value.replace(/\D/g, '').slice(0, 10) : value
+
+    setForm((prev) => ({ ...prev, [name]: nextValue }))
   }
 
   const onSubmit = async (event) => {
     event.preventDefault()
     setError('')
+    if (!/^\d{10}$/.test(form.telefono)) {
+      setError('El número de teléfono debe tener exactamente 10 dígitos')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -62,6 +71,11 @@ export default function RegisterPage({ apiUrl, onRegister, onNotify }) {
           placeholder="Teléfono"
           value={form.telefono}
           onChange={onChange}
+          inputMode="numeric"
+          pattern="\\d{10}"
+          maxLength={10}
+          title="Ingresa un número de teléfono de 10 dígitos"
+          required
         />
         <input
           type="email"

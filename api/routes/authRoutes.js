@@ -43,9 +43,16 @@ router.post('/register', async (req, res) => {
     usuario,
     password,
   } = req.body
+  const normalizedPhone = String(telefono || '').replace(/\D/g, '')
 
-  if (!nombres || !apellidos || !correo || !usuario || !password) {
+  if (!nombres || !apellidos || !correo || !usuario || !password || !normalizedPhone) {
     return res.status(400).json({ message: 'Completa los campos requeridos' })
+  }
+
+  if (!/^\d{10}$/.test(normalizedPhone)) {
+    return res.status(400).json({
+      message: 'El número de teléfono debe tener exactamente 10 dígitos',
+    })
   }
 
   if (password.length < 8) {
@@ -116,7 +123,7 @@ router.post('/register', async (req, res) => {
     const [clientResult] = await connection.query(
       `INSERT INTO clientes (nombres, apellidos, telefono, correo, direccion)
        VALUES (?, ?, ?, ?, ?)`,
-      [nombres, apellidos, telefono || null, correo, direccion || null],
+      [nombres, apellidos, normalizedPhone, correo, direccion || null],
     )
 
     const passwordHash = await bcrypt.hash(password, 10)
