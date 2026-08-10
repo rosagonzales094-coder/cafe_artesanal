@@ -1749,7 +1749,7 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
     for (const order of clientOrders) {
       const isPaidOrder =
-        String(order?.estado || '').trim().toUpperCase() === ORDER_STATUS.PAID
+        String(order?.estado || '').trim().toUpperCase() === 'PAGADA'
       if (!isPaidOrder) continue
 
       const items = Array.isArray(order?.items) ? order.items : []
@@ -2781,6 +2781,13 @@ function Catalog({ token, user, cartItems, onAddToCart, onNotify, onPreviewImage
 
       {visibleProductsByAdminCategory.length === 0 ? (
         <p className="status-text">No hay productos disponibles en esta sección.</p>
+      ) : null}
+
+      {!isAdmin && paidPurchasedProductIds.size === 0 ? (
+        <p className="status-text">
+          Las reseñas se habilitan cuando tengas al menos un producto comprado y
+          pagado.
+        </p>
       ) : null}
 
       <div className="product-grid">

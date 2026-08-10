@@ -75,6 +75,16 @@ Terminal 2 (Frontend):
 npm run dev
 ```
 
+### Usar API desplegada en Render desde local
+
+Si no vas a ejecutar la API local y quieres consumir la API en Render desde tu frontend local, define `VITE_API_URL` con la URL publica de Render:
+
+```env
+VITE_API_URL=https://cafe-artesanal.onrender.com/api
+```
+
+Luego reinicia `npm run dev` para que Vite tome la nueva variable.
+
 ## Endpoints principales
 
 - `POST /api/auth/register`
@@ -103,7 +113,7 @@ El proyecto esta listo para desplegarse como un solo servicio web en Render usan
 
 - `JWT_SECRET`
 - `DB_URL` (recomendado para Aiven)
-- `CLIENT_ORIGIN` con la URL publica del servicio Render (ejemplo: `https://cafe-artesanal.onrender.com`)
+- `CLIENT_ORIGIN` con la URL publica del servicio Render (ejemplo: `https://cafe-artesanal-1.onrender.com`)
 
 Notas de deploy:
 
