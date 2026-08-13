@@ -1256,11 +1256,6 @@ function Login({ onLogin, onNotify }) {
   )
 }
 
-const isValidPhoneNumber = (value) => {
-  const digits = String(value ?? '').replace(/\D/g, '')
-  return /^\d{9,10}$/.test(digits)
-}
-
 function Register({ onRegister, onNotify }) {
   // Pantalla de registro para crear cliente + cuenta de acceso.
   const [form, setForm] = useState({
@@ -1287,8 +1282,8 @@ function Register({ onRegister, onNotify }) {
   const onSubmit = async (event) => {
     event.preventDefault()
     setError('')
-    if (!isValidPhoneNumber(form.telefono)) {
-      setError('El número de teléfono debe tener entre 9 y 10 dígitos')
+    if (!/^\d{10}$/.test(form.telefono)) {
+      setError('El número de teléfono debe tener exactamente 10 dígitos')
       return
     }
 
@@ -1338,9 +1333,9 @@ function Register({ onRegister, onNotify }) {
           value={form.telefono}
           onChange={onChange}
           inputMode="numeric"
-          pattern="\\d{9,10}"
+          pattern="\\d{10}"
           maxLength={10}
-          title="Ingresa un número de teléfono de 9 a 10 dígitos"
+          title="Ingresa un número de teléfono de 10 dígitos"
           required
         />
         <input
