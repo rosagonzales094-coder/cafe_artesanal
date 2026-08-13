@@ -49,9 +49,9 @@ router.post('/register', async (req, res) => {
     return res.status(400).json({ message: 'Completa los campos requeridos' })
   }
 
-  if (!/^\d{10}$/.test(normalizedPhone)) {
+  if (!/^\d{9,10}$/.test(normalizedPhone)) {
     return res.status(400).json({
-      message: 'El número de teléfono debe tener exactamente 10 dígitos',
+      message: 'El número de teléfono debe tener entre 9 y 10 dígitos',
     })
   }
 
