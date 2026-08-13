@@ -51,7 +51,7 @@ export default function RegisterPage({ apiUrl, onRegister, onNotify }) {
   return (
     <section className="card auth-card">
       <h2>Crear cuenta para ver el catálogo</h2>
-      <form onSubmit={onSubmit} className="form-grid two-cols">
+      <form onSubmit={onSubmit} className="form-grid two-cols" noValidate>
         <input
           name="nombres"
           placeholder="Nombres"
@@ -72,7 +72,6 @@ export default function RegisterPage({ apiUrl, onRegister, onNotify }) {
           value={form.telefono}
           onChange={onChange}
           inputMode="numeric"
-          pattern="\\d{10}"
           maxLength={10}
           title="Ingresa un número de teléfono de 10 dígitos"
           required
