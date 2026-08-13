@@ -22,10 +22,29 @@ const indexFile = path.resolve(distDir, 'index.html')
 const catalogPdfFile = path.resolve(projectRoot, 'public', 'imagenes', 'Catalogo_Coffe_Drink.pdf')
 const productUploadsDir = path.resolve(projectRoot, 'public', 'imagenes', 'uploads')
 
+const allowedOrigins = new Set([
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://coffedrinks.com',
+  'https://www.coffedrinks.com',
+  process.env.CLIENT_ORIGIN,
+  'https://cafe-artesanal-1.onrender.com',
+].filter(Boolean))
+
 // Middleware base para CORS y parsing JSON del frontend.
 app.use(
   cors({
-    origin: process.env.CLIENT_ORIGIN || 'http://localhost:5173',
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin)) {
+        callback(null, true)
+        return
+      }
+
+      callback(new Error('Origen no permitido por CORS'))
+    },
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   }),
 )
 app.use(express.json())
